@@ -82,7 +82,6 @@ const sendOtp = asyncHandler(async (req, res) => {
   const { email } = req.body;
 
   const user = await User.findOne({ email });
-  // console.log("-------->", req.body);
 
   if (!user) {
     return res.status(404).json({
@@ -106,12 +105,10 @@ const sendOtp = asyncHandler(async (req, res) => {
 });
 
 const verifyOtp = asyncHandler(async (req, res) => {
-  const { OTP } = req.body;
-
-  const normalizedOtp = OTP.trim(); // Trim any extra spaces
+  const { otp } = req.body;
 
   // Find the user by email or phone
-  const user = await Otp.findOne({ OTP: normalizedOtp });
+  const user = await Otp.findOne({ OTP: otp });
 
   if (!user) {
     return res.status(404).json({
@@ -145,7 +142,6 @@ const verifyOtp = asyncHandler(async (req, res) => {
   await user.deleteOne();
 });
 const resetPassword = asyncHandler(async (req, res) => {
-  // console.log("Request headers", req.headers);
   const { newPassword, confirmPassword } = req.body;
   const token = req.headers["authorization"]?.split(" ")[1]; // Assuming the token is sent in the authorization header
 
@@ -158,8 +154,6 @@ const resetPassword = asyncHandler(async (req, res) => {
 
   // Verify the token (You need a function to decode and verify the token)
   const decodedToken = verifyToken(token); // Assume verifyToken returns the userId
-
-  console.log("---------", decodedToken);
 
   if (!decodedToken) {
     throw new apiError(401, "Invalid or expired token");
@@ -179,14 +173,12 @@ const resetPassword = asyncHandler(async (req, res) => {
       message: "User not found",
     });
   }
-  // console.log("----->", user);
   // Hash the new password (assuming you have a hashPassword function)
   // const hashedPassword = await bcrypt.hash(newPassword, 10);
 
   // Update the user's password
   user.password = newPassword;
   await user.save();
-  // console.log("----->", user);
   const options = {
     httpOnly: true,
     secure: true,
@@ -231,11 +223,8 @@ const loginUser = asyncHandler(async (req, res) => {
       message: "User does not exist",
     });
   }
-  console.log("User found in DB:", user);
-  console.log("Entered password:", password);
 
   const isPasswordValid = await user.isPasswordCorrect(password);
-  console.log("Password validation result:", isPasswordValid);
   if (!isPasswordValid) {
     return res.status(401).json({
       status: 401,
