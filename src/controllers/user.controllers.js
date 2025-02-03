@@ -78,124 +78,6 @@ const registerUser = asyncHandler(async (req, res) => {
     );
 });
 
-const sendOtp = asyncHandler(async (req, res) => {
-  const { email } = req.body;
-
-  const user = await User.findOne({ email });
-
-  if (!user) {
-    return res.status(404).json({
-      status: 404,
-      message: "User not found",
-    });
-  }
-
-  const { otp, otpExpiration } = await generateOtp(email);
-
-  await Otp.create({
-    OTP: otp,
-    otpExpiration,
-    user: user._id,
-  });
-
-  return res.status(200).json({
-    success: true,
-    message: `OTP sent successfully to ${email}`,
-  });
-});
-
-const verifyOtp = asyncHandler(async (req, res) => {
-  const { otp } = req.body;
-
-  // Find the user by email or phone
-  const user = await Otp.findOne({ OTP: otp });
-
-  if (!user) {
-    return res.status(404).json({
-      status: 404,
-      message: "Invalid OTP",
-    });
-  }
-
-  // Find the OTP associated with the user
-  // const otpRecord = await Otp.findOne({ user: user._id, OTP: otp });
-
-  // if (!otpRecord) {
-  //   throw new apiError(400, "Invalid OTP");
-  // }
-
-  // Check if the OTP has expired
-  if (user.otpExpiration < Date.now()) {
-    return res.status(400).json({
-      status: 400,
-      message: "OTP has expired",
-    });
-  }
-
-  // OTP is valid, you can now proceed with further actions, e.g., logging in the user, or marking the user as verified
-  res.status(200).json({
-    success: true,
-    message: "OTP verified successfully",
-  });
-
-  // Optionally, delete the OTP record after successful verification
-  await user.deleteOne();
-});
-const resetPassword = asyncHandler(async (req, res) => {
-  const { newPassword, confirmPassword } = req.body;
-  const token = req.headers["authorization"]?.split(" ")[1]; // Assuming the token is sent in the authorization header
-
-  if (!token) {
-    return res.status(401).json({
-      status: 401,
-      message: "Unauthorized request",
-    });
-  }
-
-  // Verify the token (You need a function to decode and verify the token)
-  const decodedToken = verifyToken(token); // Assume verifyToken returns the userId
-
-  if (!decodedToken) {
-    throw new apiError(401, "Invalid or expired token");
-  }
-
-  const userId = decodedToken._id; // Extract userId from the decoded token
-
-  if (newPassword !== confirmPassword) {
-    return res.status(400).json({ message: "Passwords do not match" });
-  }
-
-  // Find the user by ID from the token
-  const user = await User.findById(userId);
-  if (!user) {
-    return res.status(404).json({
-      status: 404,
-      message: "User not found",
-    });
-  }
-  // Hash the new password (assuming you have a hashPassword function)
-  // const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-  // Update the user's password
-  user.password = newPassword;
-  await user.save();
-  const options = {
-    httpOnly: true,
-    secure: true,
-  };
-  res
-    .status(200)
-    .clearCookie("accessToken", options)
-    .clearCookie("refreshToken", options)
-    .json({ message: "Password has been reset successfully" });
-
-  // return res
-  //   .status(200)
-  //   .clearCookie("accessToken", options)
-  //   .clearCookie("refreshToken", options)
-  //   .json(new ApiResponse(200, {}, "User logged Out"));
-});
-
 const loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
@@ -262,12 +144,115 @@ const loginUser = asyncHandler(async (req, res) => {
     );
 });
 
+const sendOtp = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    return res.status(404).json({
+      status: 404,
+      message: "User not found",
+    });
+  }
+
+  const { otp, otpExpiration } = await generateOtp(email);
+
+  try {
+    const dbOtp = await Otp.create({
+      OTP: otp,
+      otpExpiration,
+      user: user._id,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: 500,
+      message: "Failed to save OTP",
+    });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: `OTP sent successfully to ${email}`,
+  });
+});
+
+const verifyOtp = asyncHandler(async (req, res) => {
+  const { otp } = req.body;
+
+  const user = await Otp.findOne({ OTP: otp });
+
+  if (!user) {
+    return res.status(404).json({
+      status: 404,
+      message: "Invalid OTP",
+    });
+  }
+
+  if (user.otpExpiration < Date.now()) {
+    return res.status(400).json({
+      status: 400,
+      message: "OTP has expired",
+    });
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "OTP verified successfully",
+  });
+
+  await user.deleteOne();
+});
+const resetPassword = asyncHandler(async (req, res) => {
+  const { newPassword, confirmPassword } = req.body;
+  const token = req.headers["authorization"]?.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).json({
+      status: 401,
+      message: "Unauthorized request",
+    });
+  }
+
+  const decodedToken = verifyToken(token);
+
+  if (!decodedToken) {
+    throw new apiError(401, "Invalid or expired token");
+  }
+
+  const userId = decodedToken._id;
+
+  if (newPassword !== confirmPassword) {
+    return res.status(400).json({ message: "Passwords do not match" });
+  }
+
+  const user = await User.findById(userId);
+  if (!user) {
+    return res.status(404).json({
+      status: 404,
+      message: "User not found",
+    });
+  }
+
+  user.password = newPassword;
+  await user.save();
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+  res
+    .status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json({ message: "Password has been reset successfully" });
+});
+
 const logoutUser = asyncHandler(async (req, res) => {
   await User.findByIdAndUpdate(
     req.user._id,
     {
       $unset: {
-        refreshToken: 1, // this removes the field from document
+        refreshToken: 1,
       },
     },
     {

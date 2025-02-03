@@ -2,39 +2,25 @@ import Product from "../models/product.models.js";
 import Category from "../models/category.models.js";
 import apiError from "../utils/apiErrors.js";
 import { ApiResponse } from "../utils/apiResponse.js";
-import uploadOnCloudinary from "../utils/cloudinary.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
 const createProduct = asyncHandler(async (req, res) => {
   const {
     product_name,
-    url_slug,
-    category_name,
-    sku,
     description,
     price,
     discountPercentage,
     stock_quantity,
-    brand,
-    colors,
-    sizes,
-    highlights,
+    images,
   } = req.body;
-
-  const thumbnailFile = req.files.thumbnail ? req.files.thumbnail[0] : null;
-  const imagesFiles = req.files.images || [];
 
   if (
     !product_name ||
-    !url_slug ||
-    !category_name ||
-    !sku ||
     !description ||
     !price ||
-    !brand ||
-    !thumbnailFile ||
-    imagesFiles.length === 0 ||
-    stock_quantity === undefined
+    stock_quantity === undefined ||
+    !images ||
+    images.length === 0
   ) {
     return res.status(400).json({
       status: 400,
@@ -42,81 +28,39 @@ const createProduct = asyncHandler(async (req, res) => {
     });
   }
 
-  let category = await Category.findOne({ category_name });
-  if (!category) {
-    category = new Category({
-      category_name,
-      url_slug: category_name.toLowerCase().replace(/ /g, "-"),
-    });
-    await category.save();
-  }
-
-  const category_id = category._id;
-
-  const existingProduct = await Product.findOne({ sku });
-  if (existingProduct) {
+  if (
+    discountPercentage &&
+    (discountPercentage < 1 || discountPercentage > 99)
+  ) {
     return res.status(400).json({
       status: 400,
-      message: `Product with SKU ${sku} already exists`,
+      message: "Discount percentage must be between 1 and 99",
     });
   }
 
   let discountPrice = null;
   if (discountPercentage) {
-    if (discountPercentage < 1 || discountPercentage > 99) {
-      return res.status(400).json({
-        status: 400,
-        message: "Discount percentage must be between 1 and 99",
-      });
-    }
     discountPrice = (price * (1 - discountPercentage / 100)).toFixed(2);
-  }
-
-  const thumbnailUrl = await uploadOnCloudinary(thumbnailFile.path);
-  if (!thumbnailUrl) {
-    return res.status(400).json({
-      status: 400,
-      message: "Failed to upload thumbnail",
-    });
-  }
-
-  const imageUrls = [];
-  for (const imageFile of imagesFiles) {
-    const uploadedImage = await uploadOnCloudinary(imageFile.path);
-    if (uploadedImage) {
-      imageUrls.push({
-        url: uploadedImage.url,
-        public_id: uploadedImage.public_id,
-      });
-    }
   }
 
   const newProduct = new Product({
     product_name,
-    url_slug,
-    category_id,
-    sku,
     description,
-    price: parseFloat(price).toFixed(3),
+    price: parseFloat(price).toFixed(2),
     discountPercentage: discountPercentage || 0,
     discountPrice: discountPrice || null,
     stock_quantity,
-    brand,
-    thumbnail: {
-      url: thumbnailUrl.url,
-      public_id: thumbnailUrl.public_id,
-    },
-    images: imageUrls,
-    colors: colors || [],
-    sizes: sizes || [],
-    highlights: highlights || [],
+    images: images.map((url) => ({ url })),
   });
 
   const createdProduct = await newProduct.save();
 
-  res
-    .status(201)
-    .json(new ApiResponse(201, createdProduct, "Product created successfully"));
+  res.status(201).json({
+    status: 201,
+    success: true,
+    message: "Product created successfully",
+    data: createdProduct,
+  });
 });
 
 const fetchAllProducts = asyncHandler(async (req, res) => {
@@ -126,16 +70,10 @@ const fetchAllProducts = asyncHandler(async (req, res) => {
 
   if (req.query.category) {
     const categories = req.query.category.split(",");
-    query = query.find({ category: { $in: categories } });
+    query = query.find({ category_id: { $in: categories } });
     totalProductsQuery = totalProductsQuery.find({
-      category: { $in: categories },
+      category_id: { $in: categories },
     });
-  }
-
-  if (req.query.brand) {
-    const brands = req.query.brand.split(",");
-    query = query.find({ brand: { $in: brands } });
-    totalProductsQuery = totalProductsQuery.find({ brand: { $in: brands } });
   }
 
   if (req.query._sort && req.query._order) {
@@ -172,7 +110,7 @@ const fetchProductById = asyncHandler(async (req, res) => {
 const updateProduct = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  const product = await Product.findByIdAndUpdate(id, req.body, { new: true });
+  const product = await Product.findById(id);
   if (!product) {
     return res.status(404).json({
       status: 404,
@@ -180,24 +118,30 @@ const updateProduct = asyncHandler(async (req, res) => {
     });
   }
 
-  if (req.body.thumbnail) {
-    product.thumbnail = await uploadToCloudinary(req.body.thumbnail);
-  }
-  if (req.body.images) {
-    product.images = await Promise.all(
-      req.body.images.map(async (image) => await uploadToCloudinary(image))
-    );
-  }
+  const {
+    product_name,
+    description,
+    price,
+    discountPercentage,
+    stock_quantity,
+    images,
+  } = req.body;
 
-  Object.assign(product, req.body);
+  if (product_name) product.product_name = product_name;
+  if (description) product.description = description;
+  if (price) product.price = price;
+  if (discountPercentage) product.discountPercentage = discountPercentage;
+  if (stock_quantity) product.stock_quantity = stock_quantity;
+  if (images) product.images = images.map((url) => ({ url }));
 
-  if (product.discountPercentage) {
+  if (discountPercentage) {
     product.discountPrice = parseFloat(
       (product.price * (1 - product.discountPercentage / 100)).toFixed(2)
     );
   }
 
   const updatedProduct = await product.save();
+
   res
     .status(200)
     .json(new ApiResponse(200, updatedProduct, "Product updated successfully"));
