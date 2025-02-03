@@ -101,6 +101,7 @@ const sendOtp = asyncHandler(async (req, res) => {
   return res.status(200).json({
     success: true,
     message: `OTP sent successfully to ${email}`,
+    user: user._id,
   });
 });
 
@@ -142,24 +143,14 @@ const verifyOtp = asyncHandler(async (req, res) => {
   await user.deleteOne();
 });
 const resetPassword = asyncHandler(async (req, res) => {
-  const { newPassword, confirmPassword } = req.body;
-  const token = req.headers["authorization"]?.split(" ")[1]; // Assuming the token is sent in the authorization header
+  const { userId, newPassword, confirmPassword } = req.body;
 
-  if (!token) {
+  if (!userId) {
     return res.status(401).json({
       status: 401,
       message: "Unauthorized request",
     });
   }
-
-  // Verify the token (You need a function to decode and verify the token)
-  const decodedToken = verifyToken(token); // Assume verifyToken returns the userId
-
-  if (!decodedToken) {
-    throw new apiError(401, "Invalid or expired token");
-  }
-
-  const userId = decodedToken._id; // Extract userId from the decoded token
 
   if (newPassword !== confirmPassword) {
     return res.status(400).json({ message: "Passwords do not match" });
