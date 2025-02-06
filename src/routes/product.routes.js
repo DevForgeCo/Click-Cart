@@ -19,7 +19,7 @@ router.route("/createProduct").post(
   createProduct
 );
 router.route("/fetchAllProducts").get(fetchAllProducts);
-router.route("/fetchProductById").get(verifyJWT, fetchProductById);
+router.route("/fetchProductById/:id").get(fetchProductById);
 router.route("/updateProduct").put(verifyJWT, updateProduct);
 router.route("/deleteProduct").delete(deleteProduct);
 

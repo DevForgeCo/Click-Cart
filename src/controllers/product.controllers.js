@@ -96,7 +96,6 @@ const fetchAllProducts = asyncHandler(async (req, res) => {
 
 const fetchProductById = asyncHandler(async (req, res) => {
   const { id } = req.params;
-
   const product = await Product.findById(id);
   if (!product) {
     throw new apiError(404, "Product not found");
