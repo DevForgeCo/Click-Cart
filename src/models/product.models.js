@@ -19,29 +19,44 @@ const productSchema = new Schema(
       required: true,
       min: 0,
     },
-    discountPercentage: {
-      type: Number,
-      min: [1, "Minimum discount is 1%"],
-      max: [99, "Maximum discount is 99%"],
-      default: 0,
+    category: {
+      type: String,
+      required: true,
+      trim: true,
     },
-    discountPrice: {
-      type: Number,
+    thumbnail: {
+      url: {
+        type: String,
+        required: true,
+      },
+    },
+    images: {
+      type: [
+        {
+          url: {
+            type: String,
+            required: true,
+          },
+        },
+      ],
+      validate: {
+        validator: function (images) {
+          return images.length === 3;
+        },
+        message: "Exactly 3 image links are required.",
+      },
     },
     stock_quantity: {
       type: Number,
-      required: true,
+      required: false,
       min: 0,
       default: 0,
     },
-    images: [
-      {
-        url: {
-          type: String,
-          required: true,
-        },
-      },
-    ],
+    deleted: {
+      type: Boolean,
+      default: false,
+      required: false,
+    },
   },
   {
     timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
@@ -53,9 +68,8 @@ productSchema.virtual("id").get(function () {
 });
 
 productSchema.pre("save", function (next) {
-  if (this.discountPercentage) {
-    this.discountPrice =
-      this.price - (this.price * this.discountPercentage) / 100;
+  if (this.images.length !== 3) {
+    return next(new Error("Exactly 3 image links are required."));
   }
   next();
 });

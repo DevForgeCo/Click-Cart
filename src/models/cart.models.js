@@ -3,13 +3,10 @@ import mongoose, { Schema } from "mongoose";
 const cartSchema = new Schema(
   {
     user: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    product: { type: Schema.Types.ObjectId, ref: "Product", default: null },
+    product: { type: Schema.Types.ObjectId, ref: "Product", required: true },
     product_variant: {
-      type: {
-        size: { type: Schema.Types.Mixed },
-        color: { type: Schema.Types.Mixed },
-      },
-      default: null,
+      size: { type: String, default: null },
+      color: { type: String, default: null },
     },
     quantity: { type: Number, required: true, min: 1 },
   },
@@ -17,7 +14,7 @@ const cartSchema = new Schema(
 );
 
 cartSchema.virtual("id").get(function () {
-  return this._id;
+  return this._id.toHexString();
 });
 
 cartSchema.set("toJSON", {
