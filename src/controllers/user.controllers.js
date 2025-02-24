@@ -109,23 +109,17 @@ const verifyOtp = asyncHandler(async (req, res) => {
   const { otp } = req.body;
 
   // Find the user by email or phone
-  const user = await Otp.findOne({ OTP: otp });
+  const user = await Otp.findOne({ otp: otp });
+  console.log("---=", user);
+  console.log(Otp);
 
   if (!user) {
     return res.status(404).json({
       status: 404,
-      message: "Invalid OTP",
+      message: "User Does not exist",
     });
   }
 
-  // Find the OTP associated with the user
-  // const otpRecord = await Otp.findOne({ user: user._id, OTP: otp });
-
-  // if (!otpRecord) {
-  //   throw new apiError(400, "Invalid OTP");
-  // }
-
-  // Check if the OTP has expired
   if (user.otpExpiration < Date.now()) {
     return res.status(400).json({
       status: 400,
@@ -133,13 +127,11 @@ const verifyOtp = asyncHandler(async (req, res) => {
     });
   }
 
-  // OTP is valid, you can now proceed with further actions, e.g., logging in the user, or marking the user as verified
   res.status(200).json({
     success: true,
     message: "OTP verified successfully",
   });
 
-  // Optionally, delete the OTP record after successful verification
   await user.deleteOne();
 });
 const resetPassword = asyncHandler(async (req, res) => {
