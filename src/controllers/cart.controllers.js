@@ -44,14 +44,27 @@ export const getCartItems = asyncHandler(async (req, res) => {
     .populate("product", "product_name price thumbnail")
     .exec();
 
+  const totalAmount = cartItems.reduce(
+    (acc, item) => acc + item.quantity * item.product.price,
+    0
+  );
+
   res
     .status(200)
-    .json(new ApiResponse(200, cartItems, "Cart items fetched successfully."));
+    .json(
+      new ApiResponse(
+        200,
+        cartItems,
+        totalAmount,
+        "Cart items fetched successfully."
+      )
+    );
 });
 
 export const updateCartItem = asyncHandler(async (req, res) => {
   const { cartItemId } = req.params;
   const { quantity, product_variant } = req.body;
+  console.log(cartItemId, quantity, product_variant);
 
   const cartItem = await Cart.findById(cartItemId);
 

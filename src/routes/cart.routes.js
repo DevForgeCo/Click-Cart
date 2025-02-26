@@ -12,7 +12,7 @@ const router = Router();
 
 router.route("/addItemToCart").post(addItemToCart);
 router.route("/getCartItems/:userId").get(getCartItems);
-router.route("/updateCartItem").put(verifyJWT, updateCartItem);
+router.route("/updateCartItem/:cartItemId").put(verifyJWT, updateCartItem);
 router.route("/deleteCartItem/:cartItemId").delete(verifyJWT, deleteCartItem);
 
 export default router;
