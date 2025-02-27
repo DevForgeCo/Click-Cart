@@ -57,6 +57,10 @@ const productSchema = new Schema(
       default: false,
       required: false,
     },
+    hotItems: {
+      type: Boolean,
+      required: true,
+    },
   },
   {
     timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
