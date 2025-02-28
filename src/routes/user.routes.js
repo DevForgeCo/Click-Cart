@@ -19,4 +19,5 @@ router.route("/verifyOtp").post(verifyOtp);
 router.route("/sendOtp").post(sendOtp);
 router.route("/resetPassword").post(resetPassword);
 router.route("/logoutUser").post(verifyJWT, logoutUser);
+
 export default router;

@@ -25,10 +25,14 @@ app.use(ngrokWarningBypass);
 import userRoutes from "./routes/user.routes.js";
 import productRoutes from "./routes/product.routes.js";
 import cartRoutes from "./routes/cart.routes.js";
+import reviewsRoutes from "./routes/reviews.routes.js";
+import wishlist from "./models/wishList.models.js";
 
 // Route Declaration
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v2/products", productRoutes);
 app.use("/api/v3/cart", cartRoutes);
+app.use("/api/v4/reviews", reviewsRoutes);
+app.use("/api/v5/wishList", wishlist);
 
 export default app;

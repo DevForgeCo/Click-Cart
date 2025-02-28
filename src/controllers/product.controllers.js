@@ -6,12 +6,30 @@ import asyncHandler from "../utils/asyncHandler.js";
 import mongoose from "mongoose";
 
 const createProduct = asyncHandler(async (req, res) => {
-  const { product_name, price, description, category, thumbnail, images } =
-    req.body;
+  const {
+    product_name,
+    brand_name,
+    price,
+    discountedPrice,
+    description,
+    category,
+    thumbnail,
+    images,
+    hotItems,
+    dealOfTheMonth,
+    stock_quantity,
+    sku,
+    inStoke,
+    weight,
+  } = req.body;
+
+  console.log("Request Body:", req.body);
 
   if (
     !product_name ||
+    !brand_name ||
     !price ||
+    !discountedPrice ||
     !description ||
     !category ||
     !thumbnail ||
@@ -25,13 +43,38 @@ const createProduct = asyncHandler(async (req, res) => {
     });
   }
 
+  if (stock_quantity && typeof stock_quantity !== "number") {
+    return res.status(400).json({
+      status: 400,
+      message: "stock_quantity must be a number.",
+    });
+  }
+
+  if (weight && typeof weight !== "number") {
+    return res.status(400).json({
+      status: 400,
+      message: "weight must be a number.",
+    });
+  }
+
+  const discountPercentage = ((price - discountedPrice) / price) * 100;
+
   const newProduct = new Product({
     product_name,
+    brand_name,
     price: parseFloat(price).toFixed(2),
+    discountedPrice: parseFloat(discountedPrice).toFixed(2),
     description,
     category,
     thumbnail,
     images,
+    hotItems: hotItems || false,
+    dealOfTheMonth: dealOfTheMonth || false,
+    stock_quantity: stock_quantity || 0,
+    sku: sku || "",
+    inStoke: inStoke || false,
+    weight: weight || 0,
+    discountPercentage: parseFloat(discountPercentage.toFixed(2)),
   });
 
   const createdProduct = await newProduct.save();

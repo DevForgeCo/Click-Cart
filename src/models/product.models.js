@@ -9,6 +9,12 @@ const productSchema = new Schema(
       trim: true,
       maxlength: 255,
     },
+    brand_name: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 255,
+    },
     description: {
       type: String,
       required: true,
@@ -18,6 +24,10 @@ const productSchema = new Schema(
       type: Number,
       required: true,
       min: 0,
+    },
+    discountedPrice: {
+      type: Number,
+      required: false,
     },
     category: {
       type: String,
@@ -60,6 +70,40 @@ const productSchema = new Schema(
     hotItems: {
       type: Boolean,
       required: true,
+      default: false,
+    },
+    sku: {
+      type: String,
+      required: true,
+    },
+    dealOfTheMonth: {
+      type: Boolean,
+      required: true,
+      default: false,
+    },
+    inStoke: {
+      type: Boolean,
+      required: true,
+      default: false,
+    },
+    reviews: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Review",
+      },
+    ],
+    weight: {
+      type: Number, // Changed from String to Number
+      required: true,
+    },
+    discountPercentage: {
+      type: Number,
+      required: false, // Changed to false since it's calculated dynamically
+    },
+    url_slug: {
+      type: String,
+      unique: true, // Ensure uniqueness
+      trim: true,
     },
   },
   {
@@ -75,6 +119,15 @@ productSchema.pre("save", function (next) {
   if (this.images.length !== 3) {
     return next(new Error("Exactly 3 image links are required."));
   }
+
+  // Generate URL slug if not provided
+  if (!this.url_slug) {
+    this.url_slug = this.product_name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-") // Replace special characters with hyphens
+      .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
+  }
+
   next();
 });
 

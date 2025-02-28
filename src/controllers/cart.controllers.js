@@ -5,7 +5,7 @@ import apiError from "../utils/apiErrors.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 
 export const addItemToCart = asyncHandler(async (req, res) => {
-  const { user, product, product_variant, quantity } = req.body;
+  const { user, product, quantity } = req.body;
 
   if (!user || !product || !quantity) {
     throw new apiError(400, "User, product, and quantity are required.");
@@ -29,7 +29,6 @@ export const addItemToCart = asyncHandler(async (req, res) => {
   cartItem = new Cart({
     user,
     product,
-    product_variant,
     quantity,
   });
 
@@ -63,8 +62,8 @@ export const getCartItems = asyncHandler(async (req, res) => {
 
 export const updateCartItem = asyncHandler(async (req, res) => {
   const { cartItemId } = req.params;
-  const { quantity, product_variant } = req.body;
-  console.log(cartItemId, quantity, product_variant);
+  const { quantity } = req.body;
+  console.log(cartItemId, quantity);
 
   const cartItem = await Cart.findById(cartItemId);
 
@@ -73,7 +72,6 @@ export const updateCartItem = asyncHandler(async (req, res) => {
   }
 
   if (quantity !== undefined) cartItem.quantity = quantity;
-  if (product_variant) cartItem.product_variant = product_variant;
 
   await cartItem.save();
   res.status(200).json(new ApiResponse(200, cartItem, "Cart item updated."));

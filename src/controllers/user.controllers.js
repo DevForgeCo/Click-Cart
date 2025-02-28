@@ -5,8 +5,6 @@ import { Otp } from "../models/otp.models.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import jwt from "jsonwebtoken";
 import { generateOtp } from "../helpers/otpgenerator.js";
-import verifyToken from "../helpers/verifyToken.js";
-import bcrypt from "bcrypt";
 
 const generateAccessAndRefreshTokens = async (userId) => {
   try {
@@ -108,19 +106,16 @@ const sendOtp = asyncHandler(async (req, res) => {
 const verifyOtp = asyncHandler(async (req, res) => {
   const { otp } = req.body;
 
-  // Find the user by email or phone
-  const user = await Otp.findOne({ otp: otp });
-  console.log("---=", user);
-  console.log(Otp);
+  const dbOtp = await Otp.findOne({ otp: otp });
 
-  if (!user) {
+  if (!dbOtp) {
     return res.status(404).json({
       status: 404,
-      message: "User Does not exist",
+      message: "Invalid Otp",
     });
   }
 
-  if (user.otpExpiration < Date.now()) {
+  if (dbOtp.otpExpiration < Date.now()) {
     return res.status(400).json({
       status: 400,
       message: "OTP has expired",
@@ -131,8 +126,7 @@ const verifyOtp = asyncHandler(async (req, res) => {
     success: true,
     message: "OTP verified successfully",
   });
-
-  await user.deleteOne();
+  await dbOtp.deleteOne();
 });
 const resetPassword = asyncHandler(async (req, res) => {
   const { userId, newPassword, confirmPassword } = req.body;
