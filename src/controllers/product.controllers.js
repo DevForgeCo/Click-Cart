@@ -19,7 +19,6 @@ const createProduct = asyncHandler(async (req, res) => {
     dealOfTheMonth,
     stock_quantity,
     sku,
-    inStoke,
     weight,
   } = req.body;
 
@@ -72,7 +71,6 @@ const createProduct = asyncHandler(async (req, res) => {
     dealOfTheMonth: dealOfTheMonth || false,
     stock_quantity: stock_quantity || 0,
     sku: sku || "",
-    inStoke: inStoke || false,
     weight: weight || 0,
     discountPercentage: parseFloat(discountPercentage.toFixed(2)),
   });

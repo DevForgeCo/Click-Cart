@@ -81,11 +81,6 @@ const productSchema = new Schema(
       required: true,
       default: false,
     },
-    inStoke: {
-      type: Boolean,
-      required: true,
-      default: false,
-    },
     reviews: [
       {
         type: mongoose.Schema.Types.ObjectId,
