@@ -7,6 +7,7 @@ import {
   fetchProductById,
   updateProduct,
   deleteProduct,
+  searchProducts,
 } from "../controllers/product.controllers.js";
 
 const router = Router();
@@ -22,6 +23,7 @@ router.route("/fetchAllProducts").get(fetchAllProducts);
 router.route("/fetchProductById/:id").get(fetchProductById);
 router.route("/updateProduct/:id").put(updateProduct);
 router.route("/deleteProduct/:id").delete(deleteProduct);
+router.route("/products/search").get(searchProducts);
 
 // router.post("/create", verifyJWT, createProduct); // Only authenticated users can create products
 // router.get("/:id", getProduct); // Public route to get product details by ID

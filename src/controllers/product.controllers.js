@@ -22,8 +22,6 @@ const createProduct = asyncHandler(async (req, res) => {
     weight,
   } = req.body;
 
-  console.log("Request Body:", req.body);
-
   if (
     !product_name ||
     !brand_name ||
@@ -111,85 +109,180 @@ const fetchAllProducts = asyncHandler(async (req, res) => {
 
   const docs = await query.exec();
   res.set("X-Total-Count", totalDocs);
-  res
-    .status(200)
-    .json(new ApiResponse(200, docs, "Products fetched successfully"));
+  res.status(200).json({
+    status: 200,
+    success: true,
+    message: "Products fetched successfully",
+    data: docs,
+  });
 });
 
 const fetchProductById = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   if (!mongoose.isValidObjectId(id)) {
-    throw new apiError(400, "Invalid product ID.");
+    return res.status(400).json({
+      status: 400,
+      message: "Invalid product ID.",
+    });
   }
 
   const product = await Product.findById(id);
   if (!product) {
-    throw new apiError(404, "Product not found.");
+    return res.status(404).json({
+      status: 404,
+      message: "Product not found.",
+    });
   }
 
-  res
-    .status(200)
-    .json(new ApiResponse(200, product, "Product fetched successfully."));
+  res.status(200).json({
+    status: 200,
+    success: true,
+    message: "Product fetched successfully.",
+    data: product,
+  });
 });
 
 const updateProduct = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   if (!mongoose.isValidObjectId(id)) {
-    throw new apiError(400, "Invalid product ID.");
+    return res.status(400).json({
+      status: 400,
+      message: "Invalid product ID.",
+    });
   }
 
   const product = await Product.findById(id);
   if (!product) {
-    throw new apiError(404, "Product not found.");
+    return res.status(404).json({
+      status: 404,
+      message: "Product not found.",
+    });
   }
 
-  const { product_name, price, description, category, thumbnail, images } =
-    req.body;
+  const {
+    product_name,
+    brand_name,
+    price,
+    discountedPrice,
+    description,
+    category,
+    thumbnail,
+    images,
+    hotItems,
+    dealOfTheMonth,
+    stock_quantity,
+    sku,
+    weight,
+  } = req.body;
 
   if (product_name) product.product_name = product_name;
+  if (brand_name) product.brand_name = brand_name;
   if (price) product.price = price;
+  if (discountedPrice) product.discountedPrice = discountedPrice;
   if (description) product.description = description;
   if (category) product.category = category;
   if (thumbnail) {
     if (!thumbnail.url) {
-      throw new apiError(400, "Thumbnail URL is required.");
+      return res.status(400).json({
+        status: 400,
+        message: "Thumbnail URL is required.",
+      });
     }
     product.thumbnail = thumbnail;
   }
   if (images) {
     if (images.length !== 3) {
-      throw new apiError(400, "Exactly 3 image links are required.");
+      return res.status(400).json({
+        status: 400,
+        message: "Exactly 3 image links are required.",
+      });
     }
     product.images = images;
   }
+  if (hotItems !== undefined) product.hotItems = hotItems;
+  if (dealOfTheMonth !== undefined) product.dealOfTheMonth = dealOfTheMonth;
+  if (stock_quantity !== undefined) product.stock_quantity = stock_quantity;
+  if (sku) product.sku = sku;
+  if (weight !== undefined) product.weight = weight;
+
+  // Recalculate discountPercentage if price or discountedPrice is updated
+  // if (price !== undefined || discountedPrice !== undefined) {
+  //   const discountPercentage =
+  //     ((product.price - product.discountedPrice) / product.price) * 100;
+  //   product.discountPercentage = parseFloat(discountPercentage.toFixed(2));
+  // }
 
   const updatedProduct = await product.save();
 
-  res
-    .status(200)
-    .json(
-      new ApiResponse(200, updatedProduct, "Product updated successfully.")
-    );
+  res.status(200).json({
+    status: 200,
+    success: true,
+    message: "Product updated successfully.",
+    data: updatedProduct,
+  });
 });
 
 const deleteProduct = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   if (!mongoose.isValidObjectId(id)) {
-    throw new apiError(400, "Invalid product ID.");
+    return res.status(400).json({
+      status: 400,
+      message: "Invalid product ID.",
+    });
   }
 
   const product = await Product.findByIdAndDelete(id);
 
   if (!product) {
-    throw new apiError(404, "Product not found.");
+    return res.status(404).json({
+      status: 404,
+      message: "Product not found.",
+    });
   }
 
-  res
-    .status(200)
-    .json(new ApiResponse(200, product, "Product deleted successfully."));
+  res.status(200).json({
+    status: 200,
+    success: true,
+    message: "Product deleted successfully.",
+    data: product,
+  });
+});
+
+const searchProducts = asyncHandler(async (req, res) => {
+  const { query } = req.query;
+  if (!query) {
+    return res.status(400).json({
+      status: 400,
+      message: "Search query is required.",
+    });
+  }
+
+  const searchRegex = new RegExp(query, "i");
+
+  const products = await Product.find({
+    $or: [
+      { product_name: { $regex: searchRegex } },
+      { brand_name: { $regex: searchRegex } },
+      { category: { $regex: searchRegex } },
+    ],
+  });
+
+  if (products.length === 0) {
+    return res.status(404).json({
+      status: 404,
+      message: "No products found matching your search.",
+    });
+  }
+
+  res.status(200).json({
+    status: 200,
+    success: true,
+    message: "Products fetched successfully.",
+    data: products,
+  });
 });
 
 export {
@@ -198,4 +291,5 @@ export {
   fetchProductById,
   updateProduct,
   deleteProduct,
+  searchProducts,
 };
