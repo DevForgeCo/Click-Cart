@@ -6,82 +6,90 @@ import asyncHandler from "../utils/asyncHandler.js";
 import mongoose from "mongoose";
 
 const createProduct = asyncHandler(async (req, res) => {
-  const {
-    product_name,
-    brand_name,
-    price,
-    discountedPrice,
-    description,
-    category,
-    thumbnail,
-    images,
-    hotItems,
-    dealOfTheMonth,
-    stock_quantity,
-    sku,
-    weight,
-  } = req.body;
+  try {
+    const {
+      product_name,
+      brand_name,
+      price,
+      discountedPrice,
+      description,
+      category,
+      thumbnail,
+      images,
+      hotItems,
+      dealOfTheMonth,
+      stock_quantity,
+      sku,
+      weight,
+    } = req.body;
 
-  if (
-    !product_name ||
-    !brand_name ||
-    !price ||
-    !discountedPrice ||
-    !description ||
-    !category ||
-    !thumbnail ||
-    !images ||
-    images.length !== 3
-  ) {
-    return res.status(400).json({
-      status: 400,
-      message:
-        "Missing required fields. Thumbnail and exactly 3 image links are required.",
+    if (!product_name || !brand_name || !price || !description || !category || !thumbnail || !images) {
+      return res.status(400).json({
+        status: 400,
+        message: "Missing required fields. Thumbnail and images are required.",
+      });
+    }
+
+    if (!Array.isArray(images) || images.length !== 3) {
+      return res.status(400).json({
+        status: 400,
+        message: "Exactly 3 image links are required.",
+      });
+    }
+
+    if (typeof price !== "number" || price <= 0) {
+      return res.status(400).json({ status: 400, message: "Price must be a positive number." });
+    }
+
+    if (discountedPrice && typeof discountedPrice !== "number") {
+      return res.status(400).json({ status: 400, message: "Discounted price must be a number." });
+    }
+
+    if (stock_quantity && typeof stock_quantity !== "number") {
+      return res.status(400).json({ status: 400, message: "Stock quantity must be a number." });
+    }
+
+    if (weight && typeof weight !== "number") {
+      return res.status(400).json({ status: 400, message: "Weight must be a number." });
+    }
+
+    const formattedThumbnail = typeof thumbnail === "string" ? { url: thumbnail } : thumbnail;
+
+    const formattedImages = images.map((image) => ({ url: image }));
+
+    const discountPercentage = discountedPrice ? ((price - discountedPrice) / price) * 100 : 0;
+
+    const newProduct = new Product({
+      product_name,
+      brand_name,
+      price: parseFloat(price.toFixed(2)),
+      discountedPrice: discountedPrice ? parseFloat(discountedPrice.toFixed(2)) : undefined,
+      description,
+      category,
+      thumbnail: formattedThumbnail,
+      images: formattedImages,
+      hotItems: hotItems || false,
+      dealOfTheMonth: dealOfTheMonth || false,
+      stock_quantity: stock_quantity || 0,
+      sku: sku || "",
+      weight: weight || 0,
+      discountPercentage: parseFloat(discountPercentage.toFixed(2)),
     });
-  }
 
-  if (stock_quantity && typeof stock_quantity !== "number") {
-    return res.status(400).json({
-      status: 400,
-      message: "stock_quantity must be a number.",
+    const createdProduct = await newProduct.save();
+
+    res.status(201).json({
+      status: 201,
+      success: true,
+      message: "Product created successfully",
+      data: createdProduct,
     });
+  } catch (error) {
+    console.error("Error creating product:", error);
+    res.status(500).json({ status: 500, message: "Internal Server Error", error: error.message });
   }
-
-  if (weight && typeof weight !== "number") {
-    return res.status(400).json({
-      status: 400,
-      message: "weight must be a number.",
-    });
-  }
-
-  const discountPercentage = ((price - discountedPrice) / price) * 100;
-
-  const newProduct = new Product({
-    product_name,
-    brand_name,
-    price: parseFloat(price).toFixed(2),
-    discountedPrice: parseFloat(discountedPrice).toFixed(2),
-    description,
-    category,
-    thumbnail,
-    images,
-    hotItems: hotItems || false,
-    dealOfTheMonth: dealOfTheMonth || false,
-    stock_quantity: stock_quantity || 0,
-    sku: sku || "",
-    weight: weight || 0,
-    discountPercentage: parseFloat(discountPercentage.toFixed(2)),
-  });
-
-  const createdProduct = await newProduct.save();
-
-  res.status(201).json({
-    status: 201,
-    success: true,
-    message: "Product created successfully",
-    data: createdProduct,
-  });
 });
+
 
 const fetchAllProducts = asyncHandler(async (req, res) => {
   const condition = !req.query.admin ? { deleted: { $ne: true } } : {};
