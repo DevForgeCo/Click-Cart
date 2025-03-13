@@ -1,6 +1,6 @@
 import Product from "../models/product.models.js";
 import asyncHandler from "../utils/asyncHandler.js";
-import mongoose from "mongoose";
+import Review from "../models/reviews.model.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 
 const addReview = asyncHandler(async (req, res) => {

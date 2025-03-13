@@ -23,3 +23,6 @@ const reviewSchema = new Schema({
     trim: true,
   },
 });
+
+const Review = mongoose.model("Review", reviewSchema);
+export default Review;
