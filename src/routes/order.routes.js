@@ -12,12 +12,12 @@ import {
 const router = Router();
 
 // user ke routes hen
-router.post("/create", createOrder);
+router.post("/create", verifyJWT, createOrder);
 router.get("/user/:userId", fetchOrdersByUser);
 
 // admin or general routes
 router.get("/all", verifyJWT, fetchAllOrders);
-router.delete("/:orderId", deleteOrder);
+router.delete("/:orderId", verifyJWT, deleteOrder);
 router.put("/:orderId", verifyJWT, updateOrder);
 router.put("/:orderId/status", updateOrderStatus);
 
