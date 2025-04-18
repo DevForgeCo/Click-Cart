@@ -145,30 +145,37 @@ const updateOrder = async (req, res) => {
 };
 
 const fetchAllOrders = async (req, res) => {
-  // sort = {_sort:"price",_order="desc"}
-  // pagination = {_page:1,_limit=10}
-  let query = Order.find({ deleted: { $ne: true } });
-  let totalOrdersQuery = Order.find({ deleted: { $ne: true } });
-
-  if (req.query._sort && req.query._order) {
-    query = query.sort({ [req.query._sort]: req.query._order });
-  }
-
-  const totalDocs = await totalOrdersQuery.count().exec();
-  console.log({ totalDocs });
-
-  if (req.query._page && req.query._limit) {
-    const pageSize = req.query._limit;
-    const page = req.query._page;
-    query = query.skip(pageSize * (page - 1)).limit(pageSize);
-  }
-
   try {
-    const docs = await query.exec();
-    res.set("X-Total-Count", totalDocs);
-    res.status(200).json(docs);
-  } catch (err) {
-    res.status(400).json(err);
+    // Extract page and limit from query params with default values
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    // Calculate the number of documents to skip
+    const skip = (page - 1) * limit;
+
+    // Fetch orders with pagination
+    const orders = await Order.find()
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 }); // Optional: sort orders by latest
+
+    // Get the total number of orders (for pagination info)
+    const totalOrders = await Order.countDocuments();
+
+    res.status(200).json({
+      success: true,
+      message: "Orders fetched successfully",
+      currentPage: page,
+      totalPages: Math.ceil(totalOrders / limit),
+      totalOrders,
+      data: orders,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch orders",
+      error: error.message,
+    });
   }
 };
 
