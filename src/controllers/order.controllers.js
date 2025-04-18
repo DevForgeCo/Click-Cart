@@ -1,12 +1,10 @@
-import Order from "../models/order.model.js";
-import { v4 as uuidv4 } from "uuid";
-// import Product from "../models/product.models.js";
-// import { User } from "../models/user.models.js";
-// const { sendMail, invoiceTemplate } = require("../services/common");
+import Order from "../models/order.model";
+import Product from "../models/product.models";
+import { User } from "../models/user.models";
+const { sendMail, invoiceTemplate } = require("../services/common");
 
-const fetchOrdersByUser = async (req, res) => {
-  const { id } = req.body;
-  console.log(req.body);
+exports.fetchOrdersByUser = async (req, res) => {
+  const { id } = req.user;
   try {
     const orders = await Order.find({ user: id });
 
@@ -16,107 +14,34 @@ const fetchOrdersByUser = async (req, res) => {
   }
 };
 
-const createOrder = async (req, res) => {
+exports.createOrder = async (req, res) => {
+  const order = new Order(req.body);
+  // here we have to update stocks;
+
+  for (let item of order.items) {
+    let product = await Product.findOne({ _id: item.product.id });
+    product.$inc("stock", -1 * item.quantity);
+    // for optimum performance we should make inventory outside of product.
+    await product.save();
+  }
+
   try {
-    const {
-      user,
-      items,
-      total_amount,
-      discount_amount = 0,
-      gross_amount,
-      shipping_amount = 0,
-      net_amount,
-      selectedAddress,
-    } = req.body;
-
-    if (
-      !items ||
-      !items.length ||
-      !total_amount ||
-      !gross_amount ||
-      !net_amount ||
-      !selectedAddress
-    ) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Missing required fields" });
-    }
-
-    console.log("req.body", req.body);
-
-    const order = new Order({
-      order_number: `ORD-${uuidv4().split("-")[0].toUpperCase()}`,
-      items,
-      user,
-      total_amount,
-      discount_amount,
-      gross_amount,
-      shipping_amount,
-      net_amount,
-      paymentMethod: "Cash on Delivery",
-      paymentStatus: "pending",
-      status: "pending",
-      selectedAddress,
+    const doc = await order.save();
+    const user = await User.findById(order.user);
+    // we can use await for this also
+    sendMail({
+      to: user.email,
+      html: invoiceTemplate(order),
+      subject: "Order Received",
     });
-    console.log("----.", order);
 
-    const savedOrder = await order.save();
-
-    return res.status(201).json({
-      success: true,
-      message: "Order created successfully",
-      order: savedOrder,
-    });
-  } catch (error) {
-    console.error("Error in createOrder:", error);
-    return res
-      .status(500)
-      .json({ success: false, message: "Internal Server Error" });
+    res.status(201).json(doc);
+  } catch (err) {
+    res.status(400).json(err);
   }
 };
 
-const updateOrderStatus = async (req, res) => {
-  try {
-    const { orderId } = req.params;
-    const { status } = req.body;
-
-    const allowedStatuses = [
-      "pending",
-      "placed",
-      "shipped",
-      "delivered",
-      "cancelled",
-    ];
-    if (!allowedStatuses.includes(status)) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid status value" });
-    }
-
-    const order = await Order.findOneAndUpdate(
-      { order_number: orderId },
-      { status },
-      { new: true }
-    );
-
-    if (!order) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Order not found" });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: "Order status updated successfully",
-      order,
-    });
-  } catch (error) {
-    console.error("Error updating order status:", error);
-    res.status(500).json({ success: false, message: "Internal Server Error" });
-  }
-};
-
-const deleteOrder = async (req, res) => {
+exports.deleteOrder = async (req, res) => {
   const { id } = req.params;
   try {
     const order = await Order.findByIdAndDelete(id);
@@ -126,7 +51,7 @@ const deleteOrder = async (req, res) => {
   }
 };
 
-const updateOrder = async (req, res) => {
+exports.updateOrder = async (req, res) => {
   const { id } = req.params;
   try {
     const order = await Order.findByIdAndUpdate(id, req.body, {
@@ -138,7 +63,7 @@ const updateOrder = async (req, res) => {
   }
 };
 
-const fetchAllOrders = async (req, res) => {
+exports.fetchAllOrders = async (req, res) => {
   // sort = {_sort:"price",_order="desc"}
   // pagination = {_page:1,_limit=10}
   let query = Order.find({ deleted: { $ne: true } });
@@ -164,13 +89,4 @@ const fetchAllOrders = async (req, res) => {
   } catch (err) {
     res.status(400).json(err);
   }
-};
-
-export {
-  fetchAllOrders,
-  updateOrder,
-  deleteOrder,
-  createOrder,
-  fetchOrdersByUser,
-  updateOrderStatus,
 };

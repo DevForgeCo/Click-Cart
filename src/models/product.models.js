@@ -35,16 +35,26 @@ const productSchema = new Schema(
       trim: true,
     },
     thumbnail: {
-      type: String,
+      url: {
+        type: String,
+        required: true,
+      },
     },
     images: {
-      type: [String],
-      // validate: {
-      //   validator: function (images) {
-      //     return images.length === 3;
-      //   },
-      //   message: "Exactly 3 image links are required.",
-      // },
+      type: [
+        {
+          url: {
+            type: String,
+            required: true,
+          },
+        },
+      ],
+      validate: {
+        validator: function (images) {
+          return images.length === 3;
+        },
+        message: "Exactly 3 image links are required.",
+      },
     },
     stock_quantity: {
       type: Number,
@@ -105,11 +115,12 @@ productSchema.pre("save", function (next) {
     return next(new Error("Exactly 3 image links are required."));
   }
 
+  // Generate URL slug if not provided
   if (!this.url_slug) {
     this.url_slug = this.product_name
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "");
+      .replace(/[^a-z0-9]+/g, "-") // Replace special characters with hyphens
+      .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
   }
 
   next();
