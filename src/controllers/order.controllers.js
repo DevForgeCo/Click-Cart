@@ -1,8 +1,5 @@
 import Order from "../models/order.model.js";
 import { v4 as uuidv4 } from "uuid";
-// import Product from "../models/product.models.js";
-// import { User } from "../models/user.models.js";
-// const { sendMail, invoiceTemplate } = require("../services/common");
 
 const fetchOrdersByUser = async (req, res) => {
   const { id } = req.body;
@@ -58,7 +55,6 @@ const createOrder = async (req, res) => {
       status: "pending",
       selectedAddress,
     });
-    console.log("----.", order);
 
     const savedOrder = await order.save();
 
@@ -118,7 +114,6 @@ const updateOrderStatus = async (req, res) => {
 
 const deleteOrder = async (req, res) => {
   const { orderId } = req.params;
-  console.log("Deleting order:", orderId);
 
   try {
     const order = await Order.findOneAndDelete({ order_number: orderId });
@@ -132,34 +127,18 @@ const deleteOrder = async (req, res) => {
   }
 };
 
-const updateOrder = async (req, res) => {
-  const { id } = req.params;
-  try {
-    const order = await Order.findByIdAndUpdate(id, req.body, {
-      new: true,
-    });
-    res.status(200).json(order);
-  } catch (err) {
-    res.status(400).json(err);
-  }
-};
-
 const fetchAllOrders = async (req, res) => {
   try {
-    // Extract page and limit from query params with default values
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
 
-    // Calculate the number of documents to skip
     const skip = (page - 1) * limit;
 
-    // Fetch orders with pagination
     const orders = await Order.find()
       .skip(skip)
       .limit(limit)
-      .sort({ createdAt: -1 }); // Optional: sort orders by latest
+      .sort({ createdAt: -1 });
 
-    // Get the total number of orders (for pagination info)
     const totalOrders = await Order.countDocuments();
 
     res.status(200).json({
