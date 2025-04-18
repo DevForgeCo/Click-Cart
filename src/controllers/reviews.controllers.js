@@ -2,11 +2,10 @@ import Product from "../models/product.models.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import Review from "../models/reviews.model.js";
 import { ApiResponse } from "../utils/apiResponse.js";
-import Review from "../models/reviews.model.js";
 
 const addReview = asyncHandler(async (req, res) => {
   const { productId, userId, rating, comment } = req.body;
-  console.log(productId, userId, rating, comment)
+  console.log(productId, userId, rating, comment);
 
   if (!productId || !userId || !rating || !comment) {
     return res.status(400).json({
@@ -31,9 +30,12 @@ const addReview = asyncHandler(async (req, res) => {
     comment,
   });
 
-  const createdReview = await newReview.save();
+  console.log("newReview", newReview);
 
-  product.reviews.push(createdReview._id);
+  const createdReview = await newReview.save();
+  console.log("createdReview", createdReview);
+
+  product.reviews.push(createdReview);
   await product.save();
 
   res.status(201).json({
