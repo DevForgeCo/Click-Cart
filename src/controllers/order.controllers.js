@@ -160,7 +160,6 @@ const fetchAllOrders = async (req, res) => {
 
 export {
   fetchAllOrders,
-  updateOrder,
   deleteOrder,
   createOrder,
   fetchOrdersByUser,
