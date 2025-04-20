@@ -35,26 +35,16 @@ const productSchema = new Schema(
       trim: true,
     },
     thumbnail: {
-      url: {
-        type: String,
-        required: true,
-      },
+      type: String,
     },
     images: {
-      type: [
-        {
-          url: {
-            type: String,
-            required: true,
-          },
-        },
-      ],
-      validate: {
-        validator: function (images) {
-          return images.length === 3;
-        },
-        message: "Exactly 3 image links are required.",
-      },
+      type: [String],
+      // validate: {
+      //   validator: function (images) {
+      //     return images.length === 3;
+      //   },
+      //   message: "Exactly 3 image links are required.",
+      // },
     },
     stock_quantity: {
       type: Number,
