@@ -1,10 +1,9 @@
-import Order from "../models/order.model";
-import Product from "../models/product.models";
-import { User } from "../models/user.models";
-const { sendMail, invoiceTemplate } = require("../services/common");
+import Order from "../models/order.model.js";
+import { v4 as uuidv4 } from "uuid";
 
-exports.fetchOrdersByUser = async (req, res) => {
-  const { id } = req.user;
+const fetchOrdersByUser = async (req, res) => {
+  const { id } = req.body;
+  console.log(req.body);
   try {
     const orders = await Order.find({ user: id });
 
@@ -14,79 +13,155 @@ exports.fetchOrdersByUser = async (req, res) => {
   }
 };
 
-exports.createOrder = async (req, res) => {
-  const order = new Order(req.body);
-  // here we have to update stocks;
-
-  for (let item of order.items) {
-    let product = await Product.findOne({ _id: item.product.id });
-    product.$inc("stock", -1 * item.quantity);
-    // for optimum performance we should make inventory outside of product.
-    await product.save();
-  }
-
+const createOrder = async (req, res) => {
   try {
-    const doc = await order.save();
-    const user = await User.findById(order.user);
-    // we can use await for this also
-    sendMail({
-      to: user.email,
-      html: invoiceTemplate(order),
-      subject: "Order Received",
+    const {
+      user,
+      items,
+      total_amount,
+      discount_amount = 0,
+      gross_amount,
+      shipping_amount = 0,
+      net_amount,
+      selectedAddress,
+    } = req.body;
+
+    if (
+      !items ||
+      !items.length ||
+      !total_amount ||
+      !gross_amount ||
+      !net_amount ||
+      !selectedAddress
+    ) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing required fields" });
+    }
+
+    console.log("req.body", req.body);
+
+    const order = new Order({
+      order_number: `ORD-${uuidv4().split("-")[0].toUpperCase()}`,
+      items,
+      user,
+      total_amount,
+      discount_amount,
+      gross_amount,
+      shipping_amount,
+      net_amount,
+      paymentMethod: "Cash on Delivery",
+      paymentStatus: "pending",
+      status: "pending",
+      selectedAddress,
     });
 
-    res.status(201).json(doc);
-  } catch (err) {
-    res.status(400).json(err);
-  }
-};
+    const savedOrder = await order.save();
 
-exports.deleteOrder = async (req, res) => {
-  const { id } = req.params;
-  try {
-    const order = await Order.findByIdAndDelete(id);
-    res.status(200).json(order);
-  } catch (err) {
-    res.status(400).json(err);
-  }
-};
-
-exports.updateOrder = async (req, res) => {
-  const { id } = req.params;
-  try {
-    const order = await Order.findByIdAndUpdate(id, req.body, {
-      new: true,
+    return res.status(201).json({
+      success: true,
+      message: "Order created successfully",
+      order: savedOrder,
     });
-    res.status(200).json(order);
-  } catch (err) {
-    res.status(400).json(err);
+  } catch (error) {
+    console.error("Error in createOrder:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal Server Error" });
   }
 };
 
-exports.fetchAllOrders = async (req, res) => {
-  // sort = {_sort:"price",_order="desc"}
-  // pagination = {_page:1,_limit=10}
-  let query = Order.find({ deleted: { $ne: true } });
-  let totalOrdersQuery = Order.find({ deleted: { $ne: true } });
+const updateOrderStatus = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { status } = req.body;
 
-  if (req.query._sort && req.query._order) {
-    query = query.sort({ [req.query._sort]: req.query._order });
+    const allowedStatuses = [
+      "pending",
+      "placed",
+      "shipped",
+      "delivered",
+      "cancelled",
+    ];
+    if (!allowedStatuses.includes(status)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid status value" });
+    }
+
+    const order = await Order.findOneAndUpdate(
+      { order_number: orderId },
+      { status },
+      { new: true }
+    );
+
+    if (!order) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Order not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Order status updated successfully",
+      order,
+    });
+  } catch (error) {
+    console.error("Error updating order status:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
+};
 
-  const totalDocs = await totalOrdersQuery.count().exec();
-  console.log({ totalDocs });
-
-  if (req.query._page && req.query._limit) {
-    const pageSize = req.query._limit;
-    const page = req.query._page;
-    query = query.skip(pageSize * (page - 1)).limit(pageSize);
-  }
+const deleteOrder = async (req, res) => {
+  const { orderId } = req.params;
 
   try {
-    const docs = await query.exec();
-    res.set("X-Total-Count", totalDocs);
-    res.status(200).json(docs);
+    const order = await Order.findOneAndDelete({ order_number: orderId });
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    res.status(200).json({ message: "Order deleted", order });
   } catch (err) {
-    res.status(400).json(err);
+    res.status(400).json({ message: "Failed to delete order", error: err });
   }
+};
+
+const fetchAllOrders = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const skip = (page - 1) * limit;
+
+    const orders = await Order.find()
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+
+    const totalOrders = await Order.countDocuments();
+
+    res.status(200).json({
+      success: true,
+      message: "Orders fetched successfully",
+      currentPage: page,
+      totalPages: Math.ceil(totalOrders / limit),
+      totalOrders,
+      data: orders,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch orders",
+      error: error.message,
+    });
+  }
+};
+
+export {
+  fetchAllOrders,
+  deleteOrder,
+  createOrder,
+  fetchOrdersByUser,
+  updateOrderStatus,
 };
