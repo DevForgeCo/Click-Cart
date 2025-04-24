@@ -23,7 +23,15 @@ const createProduct = asyncHandler(async (req, res) => {
       weight,
     } = req.body;
 
-    if (!product_name || !brand_name || !price || !description || !category || !thumbnail || !images) {
+    if (
+      !product_name ||
+      !brand_name ||
+      !price ||
+      !description ||
+      !category ||
+      !thumbnail ||
+      !images
+    ) {
       return res.status(400).json({
         status: 400,
         message: "Missing required fields. Thumbnail and images are required.",
@@ -38,36 +46,44 @@ const createProduct = asyncHandler(async (req, res) => {
     }
 
     if (typeof price !== "number" || price <= 0) {
-      return res.status(400).json({ status: 400, message: "Price must be a positive number." });
+      return res
+        .status(400)
+        .json({ status: 400, message: "Price must be a positive number." });
     }
 
     if (discountedPrice && typeof discountedPrice !== "number") {
-      return res.status(400).json({ status: 400, message: "Discounted price must be a number." });
+      return res
+        .status(400)
+        .json({ status: 400, message: "Discounted price must be a number." });
     }
 
     if (stock_quantity && typeof stock_quantity !== "number") {
-      return res.status(400).json({ status: 400, message: "Stock quantity must be a number." });
+      return res
+        .status(400)
+        .json({ status: 400, message: "Stock quantity must be a number." });
     }
 
     if (weight && typeof weight !== "number") {
-      return res.status(400).json({ status: 400, message: "Weight must be a number." });
+      return res
+        .status(400)
+        .json({ status: 400, message: "Weight must be a number." });
     }
 
-    const formattedThumbnail = typeof thumbnail === "string" ? { url: thumbnail } : thumbnail;
-
-    const formattedImages = images.map((image) => ({ url: image }));
-
-    const discountPercentage = discountedPrice ? ((price - discountedPrice) / price) * 100 : 0;
+    const discountPercentage = discountedPrice
+      ? ((price - discountedPrice) / price) * 100
+      : 0;
 
     const newProduct = new Product({
       product_name,
       brand_name,
       price: parseFloat(price.toFixed(2)),
-      discountedPrice: discountedPrice ? parseFloat(discountedPrice.toFixed(2)) : undefined,
+      discountedPrice: discountedPrice
+        ? parseFloat(discountedPrice.toFixed(2))
+        : undefined,
       description,
       category,
-      thumbnail: formattedThumbnail,
-      images: formattedImages,
+      thumbnail,
+      images,
       hotItems: hotItems || false,
       dealOfTheMonth: dealOfTheMonth || false,
       stock_quantity: stock_quantity || 0,
@@ -86,44 +102,56 @@ const createProduct = asyncHandler(async (req, res) => {
     });
   } catch (error) {
     console.error("Error creating product:", error);
-    res.status(500).json({ status: 500, message: "Internal Server Error", error: error.message });
-  }
-});
-
-
-const fetchAllProducts = asyncHandler(async (req, res) => {
-  const condition = !req.query.admin ? { deleted: { $ne: true } } : {};
-  let query = Product.find(condition);
-  let totalProductsQuery = Product.find(condition);
-
-  if (req.query.category) {
-    const categories = req.query.category.split(",");
-    query = query.find({ category: { $in: categories } });
-    totalProductsQuery = totalProductsQuery.find({
-      category: { $in: categories },
+    res.status(500).json({
+      status: 500,
+      message: "Internal Server Error",
+      error: error.message,
     });
   }
-
-  if (req.query._sort && req.query._order) {
-    query = query.sort({ [req.query._sort]: req.query._order });
-  }
-
-  const totalDocs = await totalProductsQuery.countDocuments().exec();
-  if (req.query._page && req.query._limit) {
-    const pageSize = parseInt(req.query._limit, 10);
-    const page = parseInt(req.query._page, 10);
-    query = query.skip(pageSize * (page - 1)).limit(pageSize);
-  }
-
-  const docs = await query.exec();
-  res.set("X-Total-Count", totalDocs);
-  res.status(200).json({
-    status: 200,
-    success: true,
-    message: "Products fetched successfully",
-    data: docs,
-  });
 });
+
+// const fetchAllProducts = asyncHandler(async (req, res) => {
+//   const condition = !req.query.admin ? { deleted: { $ne: true } } : {};
+//   let query = Product.find(condition);
+//   let totalProductsQuery = Product.find(condition);
+
+//   if (req.query.category) {
+//     const categories = req.query.category.split(",");
+//     query = query.find({ category: { $in: categories } });
+//     totalProductsQuery = totalProductsQuery.find({
+//       category: { $in: categories },
+//     });
+//   }
+
+//   if (req.query._sort && req.query._order) {
+//     query = query.sort({ [req.query._sort]: req.query._order });
+//   }
+
+//   const totalDocs = await totalProductsQuery.countDocuments().exec();
+//   if (req.query._page && req.query._limit) {
+//     const pageSize = parseInt(req.query._limit, 10);
+//     const page = parseInt(req.query._page, 10);
+//     query = query.skip(pageSize * (page - 1)).limit(pageSize);
+//   }
+
+//   const docs = await query.exec();
+//   res.set("X-Total-Count", totalDocs);
+//   res.status(200).json({
+//     status: 200,
+//     success: true,
+//     message: "Products fetched successfully",
+//     data: docs,
+//   });
+// });
+
+const fetchAllProducts = async (req, res) => {
+  try {
+    const products = await Product.find();
+    res.status(200).json({ success: true, data: products });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server Error", error });
+  }
+};
 
 const fetchProductById = asyncHandler(async (req, res) => {
   const { id } = req.params;
