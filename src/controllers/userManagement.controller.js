@@ -43,4 +43,37 @@ const deleteUser = async (req, res) => {
   }
 };
 
-export { getAllUsers, deleteUser };
+const searchUsers = async (req, res) => {
+  try {
+    const { query } = req.query;
+
+    if (!query || query.trim() === "") {
+      return res
+        .status(400)
+        .json(new ApiResponse(400, null, "Search query is required"));
+    }
+
+    const searchRegex = new RegExp(query, "i");
+
+    const users = await User.find({
+      $or: [
+        { fullName: { $regex: searchRegex } },
+        { email: { $regex: searchRegex } },
+      ],
+    }).select("-password -refreshToken");
+
+    return res.status(200).json({
+      success: true,
+      message: "User deleted successfully",
+      users,
+    });
+  } catch (error) {
+    console.error("Error in searchUsers:", error.message);
+
+    return res
+      .status(500)
+      .json(new ApiResponse(500, null, "Internal Server Error"));
+  }
+};
+
+export { getAllUsers, deleteUser, searchUsers };
