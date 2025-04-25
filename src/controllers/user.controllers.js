@@ -3,7 +3,6 @@ import apiError from "../utils/apiErrors.js";
 import { User } from "../models/user.models.js";
 import { Otp } from "../models/otp.models.js";
 import { ApiResponse } from "../utils/apiResponse.js";
-import jwt from "jsonwebtoken";
 import { generateOtp } from "../helpers/otpgenerator.js";
 
 const generateAccessAndRefreshTokens = async (userId) => {
@@ -76,6 +75,70 @@ const registerUser = asyncHandler(async (req, res) => {
     );
 });
 
+const loginUser = asyncHandler(async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!(email || password)) {
+    return res.status(400).json({
+      status: 400,
+      message: "Email or Username and password is required",
+    });
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({
+      status: 400,
+      message: "Invalid Email format",
+    });
+  }
+
+  const user = await User.findOne({ email });
+  if (!user) {
+    return res.status(400).json({
+      status: 400,
+      message: "User does not exist",
+    });
+  }
+
+  const isPasswordValid = await user.isPasswordCorrect(password);
+  if (!isPasswordValid) {
+    return res.status(401).json({
+      status: 401,
+      message: "Invalid User Credentials",
+    });
+  }
+
+  const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
+    user._id
+  );
+
+  const loggedInUser = await User.findById(user._id).select(
+    "-password -refreshToken"
+  );
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+      new ApiResponse(
+        200,
+        {
+          user: loggedInUser,
+          accessToken,
+          refreshToken,
+        },
+        "User logged In Successfully"
+      )
+    );
+});
+
 const sendOtp = asyncHandler(async (req, res) => {
   const { email } = req.body;
 
@@ -128,6 +191,7 @@ const verifyOtp = asyncHandler(async (req, res) => {
   });
   await dbOtp.deleteOne();
 });
+
 const resetPassword = asyncHandler(async (req, res) => {
   const { userId, newPassword, confirmPassword } = req.body;
 
@@ -150,8 +214,6 @@ const resetPassword = asyncHandler(async (req, res) => {
       message: "User not found",
     });
   }
-  // Hash the new password (assuming you have a hashPassword function)
-  // const hashedPassword = await bcrypt.hash(newPassword, 10);
 
   // Update the user's password
   user.password = newPassword;
@@ -165,78 +227,6 @@ const resetPassword = asyncHandler(async (req, res) => {
     .clearCookie("accessToken", options)
     .clearCookie("refreshToken", options)
     .json({ message: "Password has been reset successfully" });
-
-  // return res
-  //   .status(200)
-  //   .clearCookie("accessToken", options)
-  //   .clearCookie("refreshToken", options)
-  //   .json(new ApiResponse(200, {}, "User logged Out"));
-});
-
-const loginUser = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
-
-  if (!(email || password)) {
-    return res.status(400).json({
-      status: 400,
-      message: "Email or Username and password is required",
-    });
-  }
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    return res.status(400).json({
-      status: 400,
-      message: "Invalid Email format",
-    });
-  }
-
-  const user = await User.findOne({
-    $or: [{ email }, { password }],
-  });
-  if (!user) {
-    return res.status(400).json({
-      status: 400,
-      message: "User does not exist",
-    });
-  }
-
-  const isPasswordValid = await user.isPasswordCorrect(password);
-  if (!isPasswordValid) {
-    return res.status(401).json({
-      status: 401,
-      message: "Invalid User Credentials",
-    });
-  }
-
-  const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
-    user._id
-  );
-
-  const loggedInUser = await User.findById(user._id).select(
-    "-password -refreshToken"
-  );
-
-  const options = {
-    httpOnly: true,
-    secure: true,
-  };
-
-  return res
-    .status(200)
-    .cookie("accessToken", accessToken, options)
-    .cookie("refreshToken", refreshToken, options)
-    .json(
-      new ApiResponse(
-        200,
-        {
-          user: loggedInUser,
-          accessToken,
-          refreshToken,
-        },
-        "User logged In Successfully"
-      )
-    );
 });
 
 const logoutUser = asyncHandler(async (req, res) => {
@@ -264,61 +254,6 @@ const logoutUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "User logged Out"));
 });
 
-const refreshAccessToken = asyncHandler(async (req, res) => {
-  const incomingRefreshToken = req.cookies.refreshToken || req.body.refresToken;
-
-  if (!incomingRefreshToken) {
-    return res.status(401).json({
-      status: 401,
-      message: "Unauthorized Request",
-    });
-  }
-
-  try {
-    const decodedToken = jwt.verify(
-      incomingRefreshToken,
-      process.env.REFRESH_TOKEN_SECRET
-    );
-    const user = User.findById(decodedToken?._id);
-
-    if (!user) {
-      return res.status(401).json({
-        status: 401,
-        message: "Invalid refreshToken",
-      });
-    }
-
-    if (incomingRefreshToken !== user?.refreshToken) {
-      return res.status(401).json({
-        status: 401,
-        message: "RefreshToken is expired or used",
-      });
-    }
-
-    const { accessToken, newRefreshToken } =
-      await generateAccessAndRefreshTokens(user._id);
-
-    const options = {
-      httpOnly: true,
-      secure: true,
-    };
-
-    return res
-      .status(200)
-      .cookie("accessToken", accessToken, options)
-      .cookie("refreshToken", newRefreshToken, options)
-      .json(
-        new ApiResponse(
-          200,
-          { accessToken, refresToken: newRefreshToken },
-          "Access Token refreshed successfully"
-        )
-      );
-  } catch (error) {
-    throw new apiError(401, error?.message || "Invalid refresh token");
-  }
-});
-
 export {
   registerUser,
   loginUser,
@@ -326,5 +261,4 @@ export {
   sendOtp,
   logoutUser,
   resetPassword,
-  refreshAccessToken,
 };
