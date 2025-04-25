@@ -6,7 +6,6 @@ import {
   verifyOtp,
   sendOtp,
   logoutUser,
-  refreshAccessToken,
   resetPassword,
 } from "../controllers/user.controllers.js";
 
@@ -14,7 +13,6 @@ const router = Router();
 
 router.route("/registerUser").post(registerUser);
 router.route("/login").post(loginUser);
-// router.route("/forgotPassword").post(verifyJWT, forgotPassword);
 router.route("/verifyOtp").post(verifyOtp);
 router.route("/sendOtp").post(sendOtp);
 router.route("/resetPassword").post(resetPassword);
