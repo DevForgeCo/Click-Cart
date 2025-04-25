@@ -29,6 +29,7 @@ import reviewsRoutes from "./routes/reviews.routes.js";
 import wishlist from "./models/wishList.models.js";
 import orderRoutes from "./routes/order.routes.js";
 import userManagementRoutes from "./routes/userManagement.routes.js";
+import adminRoutes from "./routes/adminRoutes/admin.routes.js";
 
 // Route Declaration
 app.use("/api/v1/users", userRoutes);
@@ -38,5 +39,6 @@ app.use("/api/v4/reviews", reviewsRoutes);
 app.use("/api/v5/wishList", wishlist);
 app.use("/api/v6/order", orderRoutes);
 app.use("/api/v7/userManagement", userManagementRoutes);
+app.use("/api/v8/admin-authentication", adminRoutes);
 
 export default app;
