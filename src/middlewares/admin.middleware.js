@@ -12,7 +12,7 @@ const isAdmin = async (req, res, next) => {
 
     const token = authHeader.split(" ")[1];
 
-    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    const decoded = jwt.verify(token, process.env.ADMIN_ACCESS_TOKEN_SECRET);
 
     const admin = await Admin.findById(decoded._id).select(
       "-password -refreshToken"
@@ -22,7 +22,7 @@ const isAdmin = async (req, res, next) => {
       throw new apiError(403, "Forbidden: Admin access only");
     }
 
-    req.admin = admin; 
+    req.admin = admin;
     next();
   } catch (error) {
     next(error);
