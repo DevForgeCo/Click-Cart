@@ -82,6 +82,7 @@ const updateOrderStatus = async (req, res) => {
       "shipped",
       "delivered",
       "cancelled",
+      "completed",
     ];
     if (!allowedStatuses.includes(status)) {
       return res
@@ -158,10 +159,58 @@ const fetchAllOrders = async (req, res) => {
   }
 };
 
+const getMonthlySales = async (req, res) => {
+  try {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+      23,
+      59,
+      59
+    );
+
+    const sales = await Order.aggregate([
+      {
+        $match: {
+          createdAt: {
+            $gte: firstDay,
+            $lte: lastDay,
+          },
+          status: "completed",
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalSales: { $sum: "$net_amount" },
+          totalOrders: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const result = sales[0] || { totalSales: 0, totalOrders: 0 };
+
+    res.status(200).json({
+      success: true,
+      month: now.toLocaleString("default", { month: "long" }),
+      totalSales: result.totalSales,
+      totalOrders: result.totalOrders,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server Error", error });
+  }
+};
+
+export default getMonthlySales;
+
 export {
   fetchAllOrders,
   deleteOrder,
   createOrder,
   fetchOrdersByUser,
   updateOrderStatus,
+  getMonthlySales,
 };

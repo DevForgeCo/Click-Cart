@@ -6,6 +6,7 @@ import {
   deleteOrder,
   fetchAllOrders,
   updateOrderStatus,
+  getMonthlySales,
 } from "../controllers/order.controllers.js";
 
 const router = Router();
@@ -18,5 +19,6 @@ router.get("/user/:userId", fetchOrdersByUser);
 router.get("/all", isAdmin, fetchAllOrders);
 router.delete("/:orderId", isAdmin, deleteOrder);
 router.put("/:orderId/status", isAdmin, updateOrderStatus);
+router.get("/order-sales/monthly", isAdmin, getMonthlySales);
 
 export default router;
