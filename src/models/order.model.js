@@ -7,7 +7,14 @@ const paymentMethods = {
 };
 
 const orderStatuses = {
-  values: ["placed", "processing", "shipping", "delivered", "pending"],
+  values: [
+    "placed",
+    "processing",
+    "shipping",
+    "delivered",
+    "pending",
+    "completed",
+  ],
   message: "enum validator failed for order status",
 };
 
