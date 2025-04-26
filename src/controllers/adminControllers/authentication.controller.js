@@ -1,4 +1,6 @@
 import { Admin } from "../../models/adminModels/admin.models.js";
+import { adminOtp } from "../../models/adminModels/adminOtp.models.js";
+import { generateOtp } from "../../helpers/otpgenerator.js";
 import { ApiResponse } from "../../utils/apiResponse.js";
 
 const generateTokens = async (adminId) => {
@@ -98,6 +100,85 @@ const loginAdmin = async (req, res) => {
     );
 };
 
+const sendAdminOtp = async (req, res) => {
+  const { email } = req.body;
+
+  const admin = await Admin.findOne({ email });
+  if (!admin) {
+    return res.status(404).json({
+      status: 404,
+      message: "Admin not found",
+    });
+  }
+
+  const { otp, otpExpiration } = await generateOtp(email);
+
+  await adminOtp.create({
+    OTP: otp,
+    otpExpiration,
+    adminUser: admin._id,
+  });
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { adminId: admin._id },
+        `OTP sent successfully to ${email}`
+      )
+    );
+};
+
+const verifyAdminOtp = async (req, res) => {
+  const { otp } = req.body;
+
+  const dbOtp = await adminOtp.findOne({ OTP: otp });
+  if (!dbOtp) {
+    return res.status(404).json({ status: 404, message: "Invalid OTP" });
+  }
+
+  if (dbOtp.otpExpiration < Date.now()) {
+    return res.status(400).json({ status: 400, message: "OTP has expired" });
+  }
+
+  res.status(200).json(new ApiResponse(200, {}, "OTP verified successfully"));
+  await dbOtp.deleteOne();
+};
+
+const resetAdminPassword = async (req, res) => {
+  const { adminId, newPassword, confirmPassword } = req.body;
+
+  if (!adminId) {
+    return res
+      .status(401)
+      .json({ status: 401, message: "Unauthorized request" });
+  }
+
+  if (newPassword !== confirmPassword) {
+    return res.status(400).json({ message: "Passwords do not match" });
+  }
+
+  const admin = await Admin.findById(adminId);
+  if (!admin) {
+    return res.status(404).json({ status: 404, message: "Admin not found" });
+  }
+
+  admin.password = newPassword;
+  await admin.save();
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+
+  res
+    .status(200)
+    .clearCookie("adminAccessToken", options)
+    .clearCookie("adminRefreshToken", options)
+    .json(new ApiResponse(200, {}, "Password has been reset successfully"));
+};
+
 const logoutAdmin = async (req, res) => {
   await Admin.findByIdAndUpdate(req.admin?._id, {
     $unset: { refreshToken: 1 },
@@ -115,4 +196,11 @@ const logoutAdmin = async (req, res) => {
     .json(new ApiResponse(200, {}, "Admin logged out successfully"));
 };
 
-export { registerAdmin, loginAdmin, logoutAdmin };
+export {
+  registerAdmin,
+  loginAdmin,
+  logoutAdmin,
+  sendAdminOtp,
+  verifyAdminOtp,
+  resetAdminPassword,
+};
