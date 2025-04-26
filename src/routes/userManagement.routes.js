@@ -1,4 +1,5 @@
 import { Router } from "express";
+import isAdmin from "../middlewares/admin.middleware.js";
 
 import {
   getAllUsers,
@@ -8,8 +9,8 @@ import {
 
 const router = Router();
 
-router.route("/getAllUsers").get(getAllUsers);
-router.route("/deletUser/:userId").delete(deleteUser);
-router.route("/searchUser").get(searchUsers);
+router.route("/getAllUsers").get(isAdmin, getAllUsers);
+router.route("/deletUser/:userId").delete(isAdmin, deleteUser);
+router.route("/searchUser").get(isAdmin, searchUsers);
 
 export default router;

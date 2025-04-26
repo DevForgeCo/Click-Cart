@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { upload } from "../middlewares/multer.middleware.js";
+import isAdmin from "../middlewares/admin.middleware.js";
 import {
   createProduct,
   fetchAllProducts,
@@ -17,12 +18,13 @@ router.route("/createProduct").post(
     { name: "thumbnail", maxCount: 1 },
     { name: "images", maxCount: 5 },
   ]),
+  isAdmin,
   createProduct
 );
 router.route("/fetchAllProducts").get(fetchAllProducts);
 router.route("/fetchProductById/:id").get(fetchProductById);
-router.route("/updateProduct/:id").put(updateProduct);
-router.route("/deleteProduct/:id").delete(deleteProduct);
+router.route("/updateProduct/:id").put(isAdmin, updateProduct);
+router.route("/deleteProduct/:id").delete(isAdmin, deleteProduct);
 router.route("/products/search").get(searchProducts);
 
 // router.post("/create", verifyJWT, createProduct); // Only authenticated users can create products

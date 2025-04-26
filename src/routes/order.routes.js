@@ -1,4 +1,5 @@
 import { Router } from "express";
+import isAdmin from "../middlewares/admin.middleware.js";
 import {
   fetchOrdersByUser,
   createOrder,
@@ -14,8 +15,8 @@ router.post("/create", createOrder);
 router.get("/user/:userId", fetchOrdersByUser);
 
 // admin or general routes
-router.get("/all", fetchAllOrders);
-router.delete("/:orderId", deleteOrder);
-router.put("/:orderId/status", updateOrderStatus);
+router.get("/all", isAdmin, fetchAllOrders);
+router.delete("/:orderId", isAdmin, deleteOrder);
+router.put("/:orderId/status", isAdmin, updateOrderStatus);
 
 export default router;
