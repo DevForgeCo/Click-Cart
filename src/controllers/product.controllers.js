@@ -243,12 +243,7 @@ const updateProduct = asyncHandler(async (req, res) => {
   if (sku) product.sku = sku;
   if (weight !== undefined) product.weight = weight;
 
-  // Recalculate discountPercentage if price or discountedPrice is updated
-  // if (price !== undefined || discountedPrice !== undefined) {
-  //   const discountPercentage =
-  //     ((product.price - product.discountedPrice) / product.price) * 100;
-  //   product.discountPercentage = parseFloat(discountPercentage.toFixed(2));
-  // }
+
 
   const updatedProduct = await product.save();
 
