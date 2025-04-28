@@ -146,9 +146,27 @@ const createProduct = asyncHandler(async (req, res) => {
 
 const fetchAllProducts = async (req, res) => {
   try {
-    const products = await Product.find();
-    res.status(200).json({ success: true, data: products });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const products = await Product.find()
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+    const totalProducts = await Product.countDocuments();
+
+    res.status(200).json({
+      success: true,
+      data: products,
+      pagination: {
+        totalProducts,
+        currentPage: page,
+        totalPages: Math.ceil(totalProducts / limit),
+      },
+    });
   } catch (error) {
+    console.error("Error fetching products:", error);
     res.status(500).json({ success: false, message: "Server Error", error });
   }
 };
@@ -242,8 +260,6 @@ const updateProduct = asyncHandler(async (req, res) => {
   if (stock_quantity !== undefined) product.stock_quantity = stock_quantity;
   if (sku) product.sku = sku;
   if (weight !== undefined) product.weight = weight;
-
-
 
   const updatedProduct = await product.save();
 

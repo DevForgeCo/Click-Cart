@@ -21,12 +21,33 @@ const createBanner = async (req, res) => {
 
 const getAllBanners = async (req, res) => {
   try {
-    const banners = await Banner.find().sort({ createdAt: -1 });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
 
-    res.status(200).json({ banners });
+    const banners = await Banner.find()
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+
+    const totalBanners = await Banner.countDocuments();
+
+    res.status(200).json({
+      success: true,
+      data: banners,
+      pagination: {
+        totalBanners,
+        currentPage: page,
+        totalPages: Math.ceil(totalBanners / limit),
+      },
+    });
   } catch (error) {
     console.error("Error fetching banners:", error);
-    res.status(500).json({ message: "Internal Server Error" });
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
   }
 };
 
