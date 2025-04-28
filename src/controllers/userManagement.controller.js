@@ -2,12 +2,28 @@ import { User } from "../models/user.models.js";
 
 const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find({}, "-password");
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const users = await User.find({}, "-password")
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+
+    const totalUsers = await User.countDocuments();
+
     res.status(200).json({
       success: true,
-      users,
+      data: users,
+      pagination: {
+        totalUsers,
+        currentPage: page,
+        totalPages: Math.ceil(totalUsers / limit),
+      },
     });
   } catch (error) {
+    console.error("Error fetching users:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch users",
