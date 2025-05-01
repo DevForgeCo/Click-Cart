@@ -6,12 +6,11 @@ import { ApiResponse } from "../../utils/apiResponse.js";
 const generateTokens = async (adminId) => {
   const admin = await Admin.findById(adminId);
   const accessToken = admin.generateAccessToken();
-  const refreshToken = admin.generateRefreshToken();
 
-  admin.refreshToken = refreshToken;
-  await admin.save({ validateBeforeSave: false });
+  // admin.refreshToken = refreshToken;
+  // await admin.save({ validateBeforeSave: false });
 
-  return { accessToken, refreshToken };
+  return { accessToken };
 };
 
 const registerAdmin = async (req, res) => {
