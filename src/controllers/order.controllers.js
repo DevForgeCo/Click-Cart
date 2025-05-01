@@ -1,18 +1,6 @@
 import Order from "../models/order.model.js";
 import { v4 as uuidv4 } from "uuid";
 
-const fetchOrdersByUser = async (req, res) => {
-  const { userId } = req.params;
-  console.log(req.body);
-  try {
-    const orders = await Order.find({ user: userId });
-
-    res.status(200).json(orders);
-  } catch (err) {
-    res.status(400).json(err);
-  }
-};
-
 const createOrder = async (req, res) => {
   try {
     const {
@@ -39,8 +27,6 @@ const createOrder = async (req, res) => {
         .json({ success: false, message: "Missing required fields" });
     }
 
-    console.log("req.body", req.body);
-
     const order = new Order({
       order_number: `ORD-${uuidv4().split("-")[0].toUpperCase()}`,
       items,
@@ -64,7 +50,6 @@ const createOrder = async (req, res) => {
       order: savedOrder,
     });
   } catch (error) {
-    console.error("Error in createOrder:", error);
     return res
       .status(500)
       .json({ success: false, message: "Internal Server Error" });
@@ -78,11 +63,11 @@ const updateOrderStatus = async (req, res) => {
 
     const allowedStatuses = [
       "pending",
-      "placed",
+      "processing",
       "shipped",
       "delivered",
-      "cancelled",
       "completed",
+      "cancelled",
     ];
     if (!allowedStatuses.includes(status)) {
       return res
@@ -108,7 +93,6 @@ const updateOrderStatus = async (req, res) => {
       order,
     });
   } catch (error) {
-    console.error("Error updating order status:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
@@ -156,6 +140,51 @@ const fetchAllOrders = async (req, res) => {
       message: "Failed to fetch orders",
       error: error.message,
     });
+  }
+};
+
+const cancelOrder = async (req, res) => {
+  const { orderId, userId } = req.params;
+
+  try {
+    const order = await Order.findById(orderId);
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    if (order.user.toString() !== userId.toString()) {
+      return res
+        .status(403)
+        .json({ message: "Unauthorized access to cancel this order" });
+    }
+
+    const cancellableStatuses = ["pending", "processing"];
+    if (!cancellableStatuses.includes(order.status)) {
+      return res.status(400).json({
+        message: `Order cannot be cancelled as it is already '${order.status}'`,
+      });
+    }
+
+    order.status = "cancelled";
+    await order.save();
+
+    return res
+      .status(200)
+      .json({ message: "Order cancelled successfully", order });
+  } catch (error) {
+    return res.status(500).json({ message: "Something went wrong", error });
+  }
+};
+
+const fetchOrdersByUser = async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const orders = await Order.find({ user: userId });
+
+    res.status(200).json(orders);
+  } catch (err) {
+    res.status(400).json(err);
   }
 };
 
@@ -213,4 +242,5 @@ export {
   fetchOrdersByUser,
   updateOrderStatus,
   getMonthlySales,
+  cancelOrder,
 };
