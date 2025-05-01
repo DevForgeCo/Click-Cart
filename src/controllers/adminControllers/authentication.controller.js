@@ -76,7 +76,7 @@ const loginAdmin = async (req, res) => {
     });
   }
 
-  const { accessToken, refreshToken } = await generateTokens(admin._id);
+  const { accessToken } = await generateTokens(admin._id);
   const safeAdmin = await Admin.findById(admin._id).select(
     "-password -refreshToken"
   );
@@ -89,11 +89,10 @@ const loginAdmin = async (req, res) => {
   res
     .status(200)
     .cookie("adminAccessToken", accessToken, cookieOptions)
-    .cookie("adminRefreshToken", refreshToken, cookieOptions)
     .json(
       new ApiResponse(
         200,
-        { admin: safeAdmin, accessToken, refreshToken },
+        { admin: safeAdmin, accessToken },
         "Admin logged in successfully"
       )
     );
