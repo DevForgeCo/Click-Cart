@@ -16,7 +16,7 @@ router.post("/create", createOrder);
 router.get("/user/:userId", fetchOrdersByUser);
 
 // admin or general routes
-router.get("/all", isAdmin, fetchAllOrders);
+router.get("/all", fetchAllOrders);
 router.delete("/:orderId", isAdmin, deleteOrder);
 router.put("/:orderId/status", isAdmin, updateOrderStatus);
 router.get("/order-sales/monthly", isAdmin, getMonthlySales);

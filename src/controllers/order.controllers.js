@@ -2,10 +2,10 @@ import Order from "../models/order.model.js";
 import { v4 as uuidv4 } from "uuid";
 
 const fetchOrdersByUser = async (req, res) => {
-  const { id } = req.body;
+  const { userId } = req.params;
   console.log(req.body);
   try {
-    const orders = await Order.find({ user: id });
+    const orders = await Order.find({ user: userId });
 
     res.status(200).json(orders);
   } catch (err) {
