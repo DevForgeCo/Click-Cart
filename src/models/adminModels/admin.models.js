@@ -24,13 +24,8 @@ const adminSchema = new Schema(
       type: String,
       required: [true, "Password is required"],
     },
-    refreshToken: {
+    accessToken: {
       type: String,
-    },
-    role: {
-      type: String,
-      enum: ["admin"],
-      default: "admin",
     },
   },
   { timestamps: true }
@@ -54,21 +49,9 @@ adminSchema.methods.generateAccessToken = function () {
   return jwt.sign(
     {
       _id: this._id,
-      role: this.role,
       email: this.email,
     },
     process.env.ADMIN_ACCESS_TOKEN_SECRET
-  );
-};
-
-// Refresh token
-adminSchema.methods.generateRefreshToken = function () {
-  return jwt.sign(
-    {
-      _id: this._id,
-    },
-    process.env.ADMIN_REFRESH_TOKEN_SECRET,
-    { expiresIn: process.env.ADMIN_REFRESH_TOKEN_EXPIRY }
   );
 };
 
