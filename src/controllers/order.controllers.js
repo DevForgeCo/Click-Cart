@@ -1,4 +1,5 @@
 import Order from "../models/order.model.js";
+import Cart from "../models/cart.models.js";
 import { v4 as uuidv4 } from "uuid";
 
 const createOrder = async (req, res) => {
@@ -43,6 +44,8 @@ const createOrder = async (req, res) => {
     });
 
     const savedOrder = await order.save();
+
+    await Cart.deleteMany({ user });
 
     return res.status(201).json({
       success: true,

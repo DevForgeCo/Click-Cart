@@ -63,7 +63,6 @@ export const getCartItems = asyncHandler(async (req, res) => {
 export const updateCartItem = asyncHandler(async (req, res) => {
   const { cartItemId } = req.params;
   const { quantity } = req.body;
-  console.log(cartItemId, quantity);
 
   const cartItem = await Cart.findById(cartItemId);
 
@@ -87,11 +86,4 @@ export const deleteCartItem = asyncHandler(async (req, res) => {
   }
 
   res.status(200).json(new ApiResponse(200, null, "Cart item deleted."));
-});
-
-export const clearCart = asyncHandler(async (req, res) => {
-  const { userId } = req.params;
-
-  await Cart.deleteMany({ user: userId });
-  res.status(200).json(new ApiResponse(200, null, "Cart cleared."));
 });
