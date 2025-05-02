@@ -39,12 +39,6 @@ const productSchema = new Schema(
     },
     images: {
       type: [String],
-      // validate: {
-      //   validator: function (images) {
-      //     return images.length === 3;
-      //   },
-      //   message: "Exactly 3 image links are required.",
-      // },
     },
     stock_quantity: {
       type: Number,
@@ -73,21 +67,26 @@ const productSchema = new Schema(
     },
     reviews: [
       {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Review",
+        userId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+          required: true,
+        },
+        rating: { type: Number, required: true },
+        comment: { type: String },
       },
     ],
     weight: {
-      type: Number, // Changed from String to Number
+      type: Number,
       required: true,
     },
     discountPercentage: {
       type: Number,
-      required: false, // Changed to false since it's calculated dynamically
+      required: false,
     },
     url_slug: {
       type: String,
-      unique: true, // Ensure uniqueness
+      unique: true,
       trim: true,
     },
   },
@@ -105,7 +104,6 @@ productSchema.pre("save", function (next) {
     return next(new Error("Exactly 3 image links are required."));
   }
 
-  // Generate URL slug if not provided
   if (!this.url_slug) {
     this.url_slug = this.product_name
       .toLowerCase()
