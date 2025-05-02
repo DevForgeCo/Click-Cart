@@ -27,6 +27,11 @@ const adminSchema = new Schema(
     accessToken: {
       type: String,
     },
+    role: {
+      type: String,
+      enum: ["admin"],
+      default: "admin",
+    },
   },
   { timestamps: true }
 );
@@ -47,6 +52,7 @@ adminSchema.methods.generateAccessToken = function () {
     {
       _id: this._id,
       email: this.email,
+      role: this.role,
     },
     process.env.ADMIN_ACCESS_TOKEN_SECRET
   );
