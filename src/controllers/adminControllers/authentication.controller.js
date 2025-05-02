@@ -78,7 +78,7 @@ const loginAdmin = async (req, res) => {
 
   const { accessToken } = await generateTokens(admin._id);
   const safeAdmin = await Admin.findById(admin._id).select(
-    "-password -refreshToken"
+    "-password -accessToken"
   );
 
   const cookieOptions = {

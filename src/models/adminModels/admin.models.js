@@ -31,7 +31,6 @@ const adminSchema = new Schema(
   { timestamps: true }
 );
 
-// Hash password before saving (no manual validation)
 adminSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
 
@@ -39,12 +38,10 @@ adminSchema.pre("save", async function (next) {
   next();
 });
 
-// Compare password
 adminSchema.methods.isPasswordCorrect = async function (password) {
   return await bcrypt.compare(password, this.password);
 };
 
-// Access token
 adminSchema.methods.generateAccessToken = function () {
   return jwt.sign(
     {
