@@ -6,9 +6,6 @@ const bannerSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    title: {
-      type: String,
-    },
     isActive: {
       type: Boolean,
       default: true,
