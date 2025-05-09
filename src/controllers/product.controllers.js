@@ -38,13 +38,6 @@ const createProduct = asyncHandler(async (req, res) => {
       });
     }
 
-    if (!Array.isArray(images) || images.length !== 3) {
-      return res.status(400).json({
-        status: 400,
-        message: "Exactly 3 image links are required.",
-      });
-    }
-
     if (typeof price !== "number" || price <= 0) {
       return res
         .status(400)
