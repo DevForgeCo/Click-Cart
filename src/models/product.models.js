@@ -84,11 +84,6 @@ const productSchema = new Schema(
       type: Number,
       required: false,
     },
-    url_slug: {
-      type: String,
-      unique: true,
-      trim: true,
-    },
   },
   {
     timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
