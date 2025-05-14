@@ -1,7 +1,4 @@
 import Product from "../models/product.models.js";
-import Category from "../models/category.models.js";
-import apiError from "../utils/apiErrors.js";
-import { ApiResponse } from "../utils/apiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import mongoose from "mongoose";
 
@@ -105,28 +102,56 @@ const createProduct = asyncHandler(async (req, res) => {
 
 const fetchAllProductsByAdmin = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
+    const { page = 1, limit = 10, query } = req.query;
+
+    if (query) {
+      const searchRegex = new RegExp(query, "i");
+      const searchFilter = {
+        $or: [
+          { product_name: { $regex: searchRegex } },
+          { brand_name: { $regex: searchRegex } },
+          { category: { $regex: searchRegex } },
+        ],
+      };
+
+      const products = await Product.find(searchFilter).sort({ createdAt: -1 });
+
+      return res.status(200).json({
+        success: true,
+        message: "Search results fetched successfully.",
+        data: products,
+        totalResults: products.length,
+      });
+    }
+
+    const pageNumber = parseInt(page);
+    const limitNumber = parseInt(limit);
+    const skip = (pageNumber - 1) * limitNumber;
 
     const products = await Product.find()
       .skip(skip)
-      .limit(limit)
+      .limit(limitNumber)
       .sort({ createdAt: -1 });
+
     const totalProducts = await Product.countDocuments();
 
     res.status(200).json({
       success: true,
+      message: "All products fetched with pagination.",
       data: products,
       pagination: {
         totalProducts,
-        currentPage: page,
-        totalPages: Math.ceil(totalProducts / limit),
+        currentPage: pageNumber,
+        totalPages: Math.ceil(totalProducts / limitNumber),
       },
     });
   } catch (error) {
     console.error("Error fetching products:", error);
-    res.status(500).json({ success: false, message: "Server Error", error });
+    res.status(500).json({
+      success: false,
+      message: "Server Error",
+      error: error.message,
+    });
   }
 };
 

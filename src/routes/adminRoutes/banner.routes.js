@@ -9,7 +9,7 @@ import {
 const router = Router();
 
 router.post("/upload-banners", isAdmin, createBanner);
-router.get("/get-banners", isAdmin, getAllBanners);
+router.get("/get-banners", getAllBanners);
 router.delete("/delet-banners/:id", isAdmin, deleteBanner);
 
 export default router;
