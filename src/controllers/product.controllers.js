@@ -103,41 +103,7 @@ const createProduct = asyncHandler(async (req, res) => {
   }
 });
 
-// const fetchAllProducts = asyncHandler(async (req, res) => {
-//   const condition = !req.query.admin ? { deleted: { $ne: true } } : {};
-//   let query = Product.find(condition);
-//   let totalProductsQuery = Product.find(condition);
-
-//   if (req.query.category) {
-//     const categories = req.query.category.split(",");
-//     query = query.find({ category: { $in: categories } });
-//     totalProductsQuery = totalProductsQuery.find({
-//       category: { $in: categories },
-//     });
-//   }
-
-//   if (req.query._sort && req.query._order) {
-//     query = query.sort({ [req.query._sort]: req.query._order });
-//   }
-
-//   const totalDocs = await totalProductsQuery.countDocuments().exec();
-//   if (req.query._page && req.query._limit) {
-//     const pageSize = parseInt(req.query._limit, 10);
-//     const page = parseInt(req.query._page, 10);
-//     query = query.skip(pageSize * (page - 1)).limit(pageSize);
-//   }
-
-//   const docs = await query.exec();
-//   res.set("X-Total-Count", totalDocs);
-//   res.status(200).json({
-//     status: 200,
-//     success: true,
-//     message: "Products fetched successfully",
-//     data: docs,
-//   });
-// });
-
-const fetchAllProducts = async (req, res) => {
+const fetchAllProductsByAdmin = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -161,6 +127,26 @@ const fetchAllProducts = async (req, res) => {
   } catch (error) {
     console.error("Error fetching products:", error);
     res.status(500).json({ success: false, message: "Server Error", error });
+  }
+};
+
+const fetchAllProductsByClient = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+
+    const products = await Product.find().limit(limit).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      data: products,
+    });
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server Error",
+      error: error.message,
+    });
   }
 };
 
@@ -327,9 +313,10 @@ const searchProducts = asyncHandler(async (req, res) => {
 
 export {
   createProduct,
-  fetchAllProducts,
+  fetchAllProductsByAdmin,
   fetchProductById,
   updateProduct,
   deleteProduct,
   searchProducts,
+  fetchAllProductsByClient,
 };
