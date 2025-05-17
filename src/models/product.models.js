@@ -65,6 +65,14 @@ const productSchema = new Schema(
       required: true,
       default: false,
     },
+    colors: {
+      type: [String],
+      required: false,
+    },
+    sizes: {
+      type: [String],
+      required: false,
+    },
     reviews: [
       {
         userId: {

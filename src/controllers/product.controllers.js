@@ -18,6 +18,8 @@ const createProduct = asyncHandler(async (req, res) => {
       stock_quantity,
       sku,
       weight,
+      colors,
+      sizes,
     } = req.body;
 
     if (
@@ -80,6 +82,8 @@ const createProduct = asyncHandler(async (req, res) => {
       sku: sku || "",
       weight: weight || 0,
       discountPercentage: parseFloat(discountPercentage.toFixed(2)),
+      colors: colors || [],
+      sizes: sizes || [],
     });
 
     const createdProduct = await newProduct.save();
