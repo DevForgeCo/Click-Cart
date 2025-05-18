@@ -162,12 +162,21 @@ const fetchAllProductsByAdmin = async (req, res) => {
 const fetchAllProductsByClient = async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 10;
+    const skip = parseInt(req.query.skip) || 0;
 
-    const products = await Product.find().limit(limit).sort({ createdAt: -1 });
+    const totalProducts = await Product.countDocuments();
+
+    const products = await Product.find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const hasMore = skip + products.length < totalProducts;
 
     res.status(200).json({
       success: true,
       data: products,
+      hasMore,
     });
   } catch (error) {
     console.error("Error fetching products:", error);
