@@ -106,9 +106,13 @@ const createProduct = asyncHandler(async (req, res) => {
 
 const fetchAllProductsByAdmin = async (req, res) => {
   try {
-    const { page = 1, limit = 10, query } = req.query;
+    const limit = parseInt(req.query.limit) || 10;
+    const page = parseInt(req.query.page) || 1;
+    const skip = (page - 1) * limit;
 
-    if (query) {
+    const query = req.query.query;
+
+    if (query && query.trim() !== "") {
       const searchRegex = new RegExp(query, "i");
       const searchFilter = {
         $or: [
@@ -128,16 +132,12 @@ const fetchAllProductsByAdmin = async (req, res) => {
       });
     }
 
-    const pageNumber = parseInt(page);
-    const limitNumber = parseInt(limit);
-    const skip = (pageNumber - 1) * limitNumber;
+    const totalProducts = await Product.countDocuments();
 
     const products = await Product.find()
+      .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limitNumber)
-      .sort({ createdAt: -1 });
-
-    const totalProducts = await Product.countDocuments();
+      .limit(limit);
 
     res.status(200).json({
       success: true,
@@ -145,8 +145,8 @@ const fetchAllProductsByAdmin = async (req, res) => {
       data: products,
       pagination: {
         totalProducts,
-        currentPage: pageNumber,
-        totalPages: Math.ceil(totalProducts / limitNumber),
+        currentPage: page,
+        totalPages: Math.ceil(totalProducts / limit),
       },
     });
   } catch (error) {
