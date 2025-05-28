@@ -109,44 +109,39 @@ const fetchAllProductsByAdmin = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const page = parseInt(req.query.page) || 1;
     const skip = (page - 1) * limit;
+    const query = req.query.query?.trim();
 
-    const query = req.query.query;
+    let filter = {};
 
-    if (query && query.trim() !== "") {
+    // If search query is provided
+    if (query && query !== "") {
       const searchRegex = new RegExp(query, "i");
-      const searchFilter = {
+      filter = {
         $or: [
           { product_name: { $regex: searchRegex } },
           { brand_name: { $regex: searchRegex } },
           { category: { $regex: searchRegex } },
         ],
       };
-
-      const products = await Product.find(searchFilter).sort({ createdAt: -1 });
-
-      return res.status(200).json({
-        success: true,
-        message: "Search results fetched successfully.",
-        data: products,
-        totalResults: products.length,
-      });
     }
 
-    const totalProducts = await Product.countDocuments();
+    // Total count based on filter (search or all)
+    const totalResults = await Product.countDocuments(filter);
 
-    const products = await Product.find()
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
+    // Paginated fetch
+    const products = await Product.find(filter).skip(skip).limit(limit);
 
     res.status(200).json({
       success: true,
-      message: "All products fetched with pagination.",
+      message: query
+        ? "Search results with pagination."
+        : "All products with pagination.",
       data: products,
       pagination: {
-        totalProducts,
+        totalResults,
         currentPage: page,
-        totalPages: Math.ceil(totalProducts / limit),
+        totalPages: Math.ceil(totalResults / limit),
+        perPage: limit,
       },
     });
   } catch (error) {
